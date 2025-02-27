@@ -1,13 +1,879 @@
+* {
+	font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+	background-color: #232323;
+	color: #f7f7f7;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Общий фон для экрана */
+.login-container {
+	background-color: #232323;
+	color: #fff;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between; /* Распределение контента по всему экрану */
+	align-items: center;
+	padding: 20px;
 }
+
+/* Заголовок */
+.login-title {
+	font-size: 25px;
+	font-weight: bold;
+	text-align: center;
+	margin-bottom: 20px;
+}
+
+/* Ошибка */
+.error-message {
+	color: red;
+	margin-bottom: 15px;
+	font-size: 14px;
+	text-align: center;
+}
+
+/* Форма */
+.login-form {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 412px;
+	max-width: 412px; /* Максимальная ширина формы */
+}
+
+/* Контейнер для полей ввода */
+.login-box {
+	background-color: #363636;
+	padding: 20px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+/* Метки для полей ввода */
+.input-label {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start; /* Расположение текста слева */
+	width: 100%;
+	margin-bottom: 10px;
+}
+
+.input-label p {
+	margin: 0;
+	font-size: 16px;
+	padding-bottom: 8px;
+	color: #bbb; /* Цвет текста для метки */
+}
+
+/* Поля ввода */
+.input-field {
+	background-color: #dbdbdb;
+	color: #3a3a3a;
+	border: none;
+	padding: 12px;
+	width: 100%;
+	border-radius: 12px;
+	font-size: 16px;
+}
+
+/* Кнопка отправки */
+.submit-button {
+	background-color: #a91215;
+	color: #fff;
+	padding: 8px 60px;
+	border: none;
+	border-radius: 50px;
+	cursor: pointer;
+	font-size: 18px;
+	margin-top: 35px;
+	transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+	background-color: #8c0f12;
+}
+
+/* Кнопка для перехода на экран регистрации */
+.register-button {
+	background: none;
+	border: none;
+	color: #fff;
+	text-decoration: none;
+	cursor: pointer;
+	font-weight: 200;
+	font-size: 16px;
+	display: block;
+	text-align: center;
+	margin-top: 20px;
+}
+
+.register-button:hover {
+	color: #8c0f12;
+}
+
+.register-button span {
+	color: #a91215;
+	font-weight: bold;
+	font-size: 16px;
+}
+/* Стиль контейнера для переключателя ролей */
+.role-switcher-container {
+	width: 100%;
+	margin-bottom: 20px;
+	text-align: center;
+}
+
+.role-switcher-label {
+	color: #bbb;
+	font-size: 16px;
+	margin-bottom: 10px;
+}
+
+/* Контейнер для переключателя ролей */
+.role-switcher {
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+	max-width: 400px;
+	margin: 0 auto;
+	border-radius: 50px;
+	background-color: #444;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+/* Стиль для каждой опции роли */
+.role-option {
+	width: 50%;
+	padding: 12px 0;
+	text-align: center;
+	color: #fff;
+	font-size: 16px;
+	font-weight: bold;
+	background-color: #363636;
+	transition: background-color 0.3s, transform 0.3s;
+}
+
+.role-option:hover {
+	background-color: #a91215;
+	transform: scale(1.05);
+}
+
+/* Стиль для активной роли */
+.role-option.active {
+	background-color: #a91215;
+}
+
+.trainer-container {
+	background-color: #232323;
+	color: #fff;
+	min-height: 100vh;
+	display: flex;
+	justify-content: space-between; /* Распределение контента по всему экрану */
+	align-items: center;
+}
+
+.trainer-description-container {
+	width: 100%;
+	max-width: 500px;
+	display: flex;
+	justify-content: center;
+	min-height: 100vh;
+	flex-direction: column;
+	align-items: center;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.trainer-description-title {
+	font-size: 24px;
+	text-align: center;
+	margin-bottom: 20px;
+	color: #bbb;
+}
+
+.trainer-description-form {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.description-input {
+	resize: vertical;
+	height: 150px;
+}
+
+.trainer-description-box {
+	background-color: #363636;
+	padding: 20px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+	width: 412px;
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
+}
+.experience-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 10px;
+}
+
+.experience-button {
+	font-size: 20px;
+	width: 40px;
+	height: 40px;
+	border: none;
+	background-color: #a91215;
+	color: white;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+.experience-button:hover {
+	background-color: #900e12;
+}
+
+.experience-number {
+	font-size: 18px;
+	font-weight: bold;
+	color: #fff;
+	width: 40px;
+	text-align: center;
+}
+.text-align-center {
+	text-align: center;
+}
+.trainer-skills-box {
+	min-height: 100vh;
+	background-color: #232323;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+.trainer-skills-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	max-width: 500px;
+	background-color: #363636;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	padding: 20px;
+}
+
+.trainer-skills-title {
+	font-size: 24px;
+	text-align: center;
+	margin-bottom: 20px;
+	color: #bbb;
+}
+
+.skills-list {
+	width: 80%;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 15px;
+	justify-content: center;
+}
+
+.skill-item {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 12px;
+	border-radius: 30px;
+	background-color: #fff;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	cursor: pointer;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+
+.skill-item.selected {
+	border: 2px solid #a91215;
+	background-color: #f7f7f7;
+}
+
+.skill-item:hover {
+	background-color: #f1f1f1;
+}
+
+.skill-text {
+	font-size: 16px;
+	color: #333;
+	text-align: center;
+}
+
+.home-screen {
+	font-family: 'Arial', sans-serif;
+	margin: 0;
+	background-color: #212020;
+	height: 100vh;
+}
+.home-padding {
+	padding: 20px;
+}
+.greeting {
+	color: #a91215;
+	font-size: 26px;
+	font-weight: bold;
+	margin-bottom: 10px;
+	margin-top: 30px;
+}
+
+.info-text {
+	color: #c9c9c9;
+	font-size: 16px;
+	margin-bottom: 20px;
+	margin-top: -5px;
+}
+
+.section-title {
+	color: #ffffff;
+	font-size: 20px;
+	font-weight: 600;
+	margin-bottom: 0px;
+}
+
+.error-message {
+	color: red;
+	font-size: 16px;
+	margin-bottom: 10px;
+}
+
+.horizontal-scroll {
+	display: flex;
+	overflow-x: auto;
+	gap: 15px;
+	padding: 10px 0;
+}
+
+.card {
+	width: 175px;
+	cursor: pointer;
+	transition: background-color 0.3s;
+	flex-shrink: 0;
+}
+
+.workout-img {
+	border-radius: 20px 20px 0 0;
+	width: 100%;
+	height: auto;
+}
+.workout-text-box {
+	padding: 5px 10px;
+}
+.workout-title {
+	color: #ffffff;
+	font-weight: 600;
+}
+.workout-time {
+	padding-top: 10px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.workout-time p {
+	font-size: 16px;
+	color: #bbb;
+}
+.time-icon {
+	color: #a91215;
+}
+.card:hover {
+	background-color: #3a3a3a;
+	border-radius: 20px;
+}
+
+.card strong {
+	font-weight: 700;
+	color: #333;
+}
+
+.bottom-bar {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	background-color: #a91215;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 18px 70px;
+	box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.bottom-bar-button {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: white;
+	font-size: 24px;
+	transition: color 0.3s;
+}
+
+.bottom-bar-button:hover {
+	color: #ffcc00;
+}
+.challenge-section {
+	width: 100%;
+	background-color: #a91215;
+	padding: 20px 0;
+	margin: 15px 0;
+}
+
+.challenge-container {
+	display: flex;
+	height: 140px;
+	align-items: center;
+	background-color: #212020;
+	justify-content: space-between;
+	margin: 5px 40px;
+	border-radius: 20px;
+}
+
+.challenge-text {
+	color: white;
+	text-align: center;
+}
+
+.challenge-text h2 {
+	font-size: 26px;
+	margin: 5px;
+}
+
+.challenge-text p {
+	font-size: 16px;
+	color: #aaaaaa;
+}
+
+.challenge-image img {
+	height: 136px;
+}
+
+.trainer-card {
+	width: 175px;
+	padding: 10px;
+	cursor: pointer;
+	transition: background-color 0.3s;
+	flex-shrink: 0;
+}
+
+.trainer-image {
+	width: auto;
+	height: 160px;
+	overflow: hidden;
+	border-radius: 20px;
+	background-color: #f0f0f0;
+}
+
+.trainer-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.bottom-div {
+	height: 50px;
+}
+
+.trainer-text-box {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: #aaaaaa;
+}
+.trainer-text {
+	color: white;
+	padding: 15px 0 5px 0;
+}
+
+.avatar {
+	width: 150px;
+	height: 150px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.buttons {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: left;
+	margin-top: 20px;
+	margin-right: 100px;
+	margin-bottom: 100px;
+}
+
+.user-button {
+	text-align: left;
+	padding: 10px 20px;
+	margin: 5px;
+	background-color: transparent;
+	color: white;
+	border: none;
+	cursor: pointer;
+	width: 200px;
+	font-size: 18px;
+	transition: background 0.3s;
+	border-radius: 35px;
+}
+
+.user-button:hover {
+	background-color: #8a1012;
+}
+
+.user-container {
+	width: 100vw;
+	/* height: 25rem; */
+	background-color: #a91215;
+	color: white;
+	margin-top: 30px;
+}
+.profile {
+	display: flex;
+	height: auto;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+	padding: 25px;
+}
+.user-text {
+	padding: 20px 40px;
+	text-align: left;
+}
+.profile-name {
+	font-weight: 600;
+	font-size: 26px;
+	padding-top: 16px;
+}
+.trainer-info {
+	padding-top: 15px;
+	width: 300px;
+	overflow: hidden;
+}
+
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	margin-bottom: 20px;
+	background-color: #a91215;
+	padding: 15px;
+}
+
+.publish-submit-button {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	cursor: pointer;
+	margin-right: 20px;
+	font-size: 18px;
+	color: #f7f7f7;
+	text-align: center;
+}
+.back-button {
+	background-color: transparent;
+	border: none;
+	color: #f7f7f7;
+	margin-right: 15px;
+	font-size: 17px;
+}
+.form {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.form-group {
+	margin-bottom: 15px;
+	width: 100%;
+	max-width: 400px;
+	text-align: left;
+}
+
+label {
+	font-size: 16px;
+	display: block;
+	margin-bottom: 5px;
+}
+
+.input,
+.textarea {
+	width: 100%;
+	padding: 10px;
+	font-size: 14px;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+}
+
+.textarea {
+	height: 100px;
+}
+
+.publish-form {
+	margin: 0 20px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+.workouts-list {
+	margin: 0 20px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+.workouts-list {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.workouts-card {
+	background: white;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+	border-radius: 10px;
+	padding: 15px;
+	margin: 10px 0;
+	width: 90%;
+	max-width: 400px;
+	text-align: left;
+}
+
+.workouts-card h4 {
+	margin: 0;
+	color: #a91215;
+}
+
+.date {
+	font-size: 14px;
+	color: gray;
+}
+
+.description {
+	margin-top: 5px;
+	font-size: 15px;
+	color: #333;
+}
+.no-image {
+	color: gray;
+	font-size: 14px;
+}
+
+.workout-box {
+	margin: 0 15px;
+	align-items: center;
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
+}
+
+.workout-trainer {
+	margin-top: 150px;
+	width: 300px;
+	overflow: hidden;
+}
+
+.center-container {
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+}
+.mt {
+	margin-top: 25px;
+}
+
+.text-gray {
+	color: #bbb;
+}
+
+.workout-image-screen {
+	width: 70%;
+	justify-content: center;
+	display: flex;
+	align-items: center;
+	border-radius: 20px;
+}
+
+.trainer-content {
+	margin: 25px 40px;
+	width: 340px;
+	overflow: hidden;
+}
+
+.skills-container {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 10px;
+}
+
+.skill-card {
+	padding: 8px 12px;
+	border: 1px solid red;
+	border-radius: 20px;
+	background-color: rgba(255, 0, 0, 0.1);
+	text-align: center;
+}
+
+.no-skills {
+	color: gray;
+	font-style: italic;
+}
+
+.mt-2 {
+	padding-top: 10px;
+}
+
+.review-container {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	width: 100%;
+	max-width: 600px;
+	height: 100%;
+	max-height: 300px;
+	background: #ffffff;
+	padding: 15px;
+	border-radius: 10px;
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s ease-in-out;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+}
+
+.review-card {
+	margin-top: 15px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	width: 100%;
+	max-width: 600px;
+	background: #313131;
+	padding: 15px;
+	border-radius: 14px;
+	box-shadow: 0 4px 15px rgba(163, 163, 163, 0.1);
+	transition: transform 0.2s ease-in-out;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+}
+
+.review-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.review-avatar {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+}
+
+.review-name {
+	font-size: 16px;
+	color: #cacaca;
+}
+
+.review-rating .star {
+	font-size: 14px;
+	color: #ccc;
+}
+
+.review-rating .filled {
+	color: #ffd700;
+}
+
+.review-text {
+	margin-top: 5px;
+	color: #cfcfcf;
+}
+
+.no-reviews {
+	color: #888;
+	font-style: italic;
+}
+
+.review-form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 15px;
+}
+
+.rating-input {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	align-items: flex-start;
+}
+
+.rating-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.rating-btn {
+	background-color: #a91215;
+	color: white;
+	border: none;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 18px;
+	cursor: pointer;
+	transition: background 0.3s;
+}
+
+.rating-btn:hover {
+	background-color: #8c1012;
+}
+
+.rating-field {
+	width: 40px;
+	text-align: center;
+	font-size: 16px;
+	border: 1px solid #ddd;
+	border-radius: 5px;
+	padding: 5px;
+	background: #f8f9fa;
+	outline: none;
+}
+
+.review-textarea {
+	width: 100%;
+	padding: 8px;
+	border: 1px solid #ddd;
+	border-radius: 5px;
+	resize: none;
+}
+
+.comments-user {
+	margin: 0 15px;
+}
+.review-text-box {
+	width: 350px;
+}
+
+
