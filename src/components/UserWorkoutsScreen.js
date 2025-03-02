@@ -12,7 +12,7 @@ const UserWorkoutsScreen = () => {
 		if (!userData) return;
 
 		fetch(
-			`https://192.168.8.158:7113/api/WorkoutRegistrations/user/${userData.user.userId}`
+			`https://localhost:7149/api/WorkoutRegistrations/user/${userData.user.userId}`
 		)
 			.then(response => response.json())
 			.then(data => setWorkouts(data))
@@ -40,17 +40,19 @@ const UserWorkoutsScreen = () => {
 						>
 							<img
 								src={
-									registration.workout.imageUrl ||
+									`https://localhost:7149${registration.workout.imageUrl}` ||
 									'/images/placeholder-image.png'
 								}
 								alt={registration.workout.title}
-								className='workout-img'
+								className='workout-img-register'
 								onError={e => {
 									e.target.src = '/images/placeholder-image.png';
 								}}
 							/>
 							<div className='workout-info'>
-								<p className='workout-title mt-2'>{registration.workout.title}</p>
+								<p className='workout-title mt-2'>
+									{registration.workout.title}
+								</p>
 								<p className='workout-description'>
 									{registration.workout.description}
 								</p>

@@ -9,7 +9,7 @@ const PublishWorkout = () => {
 	const [title, setTitle] = useState('');
 	const [startTime, setStartTime] = useState('');
 	const [description, setDescription] = useState('');
-	const [imageUrl, setImageUrl] = useState('');
+	const [imageFile, setImageFile] = useState(null);
 	const [error, setError] = useState('');
 	const [successMessage, setSuccessMessage] = useState('');
 
@@ -17,33 +17,39 @@ const PublishWorkout = () => {
 	const storedTrainerData = JSON.parse(localStorage.getItem('trainerData'));
 	const trainerId = storedTrainerData ? storedTrainerData.trainerId : null;
 	console.log(storedTrainerData);
-	const handleSubmit = e => {
+	const handleSubmit = async e => {
 		e.preventDefault();
 
-		if (!title || !startTime || !description || !imageUrl || !trainerId) {
+		if (!title || !startTime || !description || !imageFile || !trainerId) {
 			setError('Пожалуйста, заполните все поля.');
 			return;
 		}
 
-		const workoutData = {
-			title,
-			startTime,
-			description,
-			trainerId,
-			imageUrl,
-		};
+		const formData = new FormData();
+		formData.append('Title', title);
+		formData.append('StartTime', startTime);
+		formData.append('Description', description);
+		formData.append('TrainerId', trainerId);
+		formData.append('ImageFile', imageFile);
 
-		axios
-			.post('https://192.168.8.158:7113/api/Workouts', workoutData)
-			.then(response => {
-				setSuccessMessage('Тренировка успешно опубликована!');
-				setError('');
-				navigate('/user');
-			})
-			.catch(err => {
-				console.error('Ошибка при публикации тренировки:', err);
-				setError('Не удалось опубликовать тренировку. Попробуйте снова.');
-			});
+		try {
+			const response = await axios.post(
+				'https://localhost:7149/api/Workouts',
+				formData,
+				{
+					headers: {
+						'Content-Type': 'multipart/form-data',
+					},
+				}
+			);
+
+			setSuccessMessage('Тренировка успешно опубликована!');
+			setError('');
+			navigate('/user');
+		} catch (err) {
+			console.error('Ошибка при публикации тренировки:', err);
+			setError('Не удалось опубликовать тренировку. Попробуйте снова.');
+		}
 	};
 
 	return (
@@ -86,13 +92,13 @@ const PublishWorkout = () => {
 					/>
 				</div>
 				<div className='form-group'>
-					<label htmlFor='imageUrl'>Ссылка на изображение:</label>
+					<label htmlFor='imageFile'>Изображение:</label>
 					<input
-						type='text'
-						id='imageUrl'
-						value={imageUrl}
-						onChange={e => setImageUrl(e.target.value)}
+						type='file'
+						id='imageFile'
+						onChange={e => setImageFile(e.target.files[0])}
 						className='input'
+						accept='image/*'
 					/>
 				</div>
 

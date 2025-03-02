@@ -11,7 +11,7 @@ const WorkoutScreen = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		fetch(`https://192.168.8.158:7113/api/Workouts/${workoutId}`)
+		fetch(`https://localhost:7149/api/Workouts/${workoutId}`)
 			.then(response => response.json())
 			.then(data => setWorkout(data))
 			.catch(() => setError('Не удалось загрузить информацию о тренировке'));
@@ -27,7 +27,7 @@ const WorkoutScreen = () => {
 		}
 
 		fetch(
-			`https://192.168.8.158:7113/api/WorkoutRegistrations?userId=${userId}&workoutId=${workoutId}`,
+			`https://localhost:7149/api/WorkoutRegistrations?userId=${userId}&workoutId=${workoutId}`,
 			{ method: 'POST' }
 		)
 			.then(response => response.json())
@@ -51,8 +51,10 @@ const WorkoutScreen = () => {
 			<div className='workout-box'>
 				{workout.imageUrl ? (
 					<img
-						src={workout.imageUrl}
-						alt={workout.title}
+						src={
+							`https://localhost:7149${workout.imageUrl}` ||
+							'/images/placeholder-image.png'
+						}
 						className='workout-image-screen'
 					/>
 				) : (
