@@ -1,6 +1,6 @@
 # FitnessFormula
 
-## Проект на React Appp
+## Проект на React App
 
 # FitnessFormula - Это приложение для сервиса FitnessFormula, основной функционал реализован, далее будет дорабатываться
 
