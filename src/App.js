@@ -13,7 +13,8 @@ import PublishWorkout from './components/PublishWorkout';
 import WorkoutsScreen from './components/WorkoutsScreen';
 import CommentsScreen from './components/CommentsScreen';
 import UserWorkoutsScreen from './components/UserWorkoutsScreen';
-	
+import EditProfileScreen from './components/EditProfileScreen';
+
 function App() {
 	return (
 		<Router>
@@ -38,6 +39,7 @@ function App() {
 					path='/user/workoutregistration'
 					element={<UserWorkoutsScreen />}
 				/>
+				<Route path='/edit-profile' element={<EditProfileScreen />} />
 			</Routes>
 		</Router>
 	);

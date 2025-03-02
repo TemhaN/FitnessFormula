@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// const API_URL = 'https://192.168.8.158:7113/api';
+// const API_URL = 'https://localhost:7149/api';
 
-const API_URL = 'https://192.168.8.158:7113/api';
+const API_URL = 'https://localhost:7149/api';
 
 // Функция для входа пользователя
 export const loginUser = async formData => {

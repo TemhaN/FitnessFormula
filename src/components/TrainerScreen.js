@@ -12,16 +12,16 @@ const TrainerScreen = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		fetch(`https://192.168.8.158:7113/api/Trainers/${trainerId}`)
+		fetch(`https://localhost:7149/api/Trainers/${trainerId}`)
 			.then(response => response.json())
 			.then(data => setTrainerData(data))
 			.catch(() => setTrainerData({}));
 
-		fetch(`https://192.168.8.158:7113/api/Workouts/trainer/${trainerId}`)
+		fetch(`https://localhost:7149/api/Workouts/trainer/${trainerId}`)
 			.then(response => response.json())
 			.then(data => setWorkouts(data));
 
-		fetch(`https://192.168.8.158:7113/api/Reviews/trainer/${trainerId}`)
+		fetch(`https://localhost:7149/api/Reviews/trainer/${trainerId}`)
 			.then(response => response.json())
 			.then(data => setReviews(data));
 	}, [trainerId]);
@@ -37,12 +37,12 @@ const TrainerScreen = () => {
 		e.preventDefault();
 		if (!userData) return; // Проверяем, что пользователь авторизован
 
-		fetch('https://192.168.8.158:7113/api/Reviews', {
+		fetch('https://localhost:7149/api/Reviews', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
 				trainerId,
-				userId: userData.userId, // Убрал лишний user
+				userId: userData.user.userId, // Убрал лишний user
 				rating: newReview.rating,
 				comment: newReview.comment,
 			}),
@@ -52,9 +52,7 @@ const TrainerScreen = () => {
 				setNewReview({ rating: 0, comment: '' });
 
 				// Обновление списка отзывов после публикации
-				return fetch(
-					`https://192.168.8.158:7113/api/Reviews/trainer/${trainerId}`
-				);
+				return fetch(`https://localhost:7149/api/Reviews/trainer/${trainerId}`);
 			})
 			.then(response => response.json())
 			.then(data => setReviews(data))
@@ -79,7 +77,10 @@ const TrainerScreen = () => {
 				</div>
 				<div className='profile'>
 					<img
-						src='/images/Profile_avatar_placeholder.png'
+						src={
+							`https://localhost:7149/${trainerData.user.avatar}` ||
+							'/images/Profile_avatar_placeholder.png'
+						}
 						alt='Avatar'
 						className='avatar'
 					/>

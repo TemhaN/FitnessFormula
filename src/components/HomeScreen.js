@@ -96,7 +96,10 @@ const HomeScreen = () => {
 								<div className='workout-image'>
 									<img
 										className='workout-img'
-										src={workout.imageUrl || '/images/placeholder-image.png'}
+										src={
+											`https://localhost:7149${workout.imageUrl}` ||
+											'/images/placeholder-image.png'
+										}
 										alt={workout.title}
 										onError={e => {
 											if (!e.target.dataset.error) {
@@ -153,7 +156,10 @@ const HomeScreen = () => {
 								<div className='trainer-image'>
 									<img
 										className='trainer-img'
-										src={trainer.user.avatar || '/images/placeholder-image.png'}
+										src={
+											`https://localhost:7149/${trainer.user.avatar}` ||
+											'/images/placeholder-image.png'
+										}
 										alt={trainer.user.fullName}
 										onError={e => {
 											if (!e.target.dataset.error) {

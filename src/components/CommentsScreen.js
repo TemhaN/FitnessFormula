@@ -16,7 +16,7 @@ const CommentsScreen = () => {
 		if (userData && userData.user.userId) {
 			const userId = userData.user.userId; // Извлекаем userId из userData
 
-			const commentsUrl = `https://192.168.8.158:7113/api/Reviews/user/${userId}`;
+			const commentsUrl = `https://localhost:7149/api/Reviews/user/${userId}`;
 			axios
 				.get(commentsUrl)
 				.then(response => {

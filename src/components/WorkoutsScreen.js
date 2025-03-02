@@ -10,11 +10,15 @@ const WorkoutsScreen = () => {
 	const [error, setError] = useState('');
 	const navigate = useNavigate();
 
+	const navigateToWorkout = workoutId => {
+		navigate(`/workout/${workoutId}`);
+	};
+
 	useEffect(() => {
 		const savedTrainerData = JSON.parse(localStorage.getItem('trainerData'));
 
 		if (savedTrainerData && savedTrainerData.trainerId) {
-			const workoutsUrl = `https://192.168.8.158:7113/api/Workouts/trainer/${savedTrainerData.trainerId}`;
+			const workoutsUrl = `https://localhost:7149/api/Workouts/trainer/${savedTrainerData.trainerId}`;
 			axios
 				.get(workoutsUrl)
 				.then(response => {
@@ -43,7 +47,20 @@ const WorkoutsScreen = () => {
 
 				{workouts.length > 0 ? (
 					workouts.map(workout => (
-						<div key={workout.workoutId} className='workouts-card'>
+						<div
+							onClick={() => navigateToWorkout(workout.workoutId)}
+							key={workout.workoutId}
+							className='workouts-card'
+						>
+							<img
+								className='image-workouts'
+								src={
+									`https://localhost:7149${workout.imageUrl}` ||
+									'/images/placeholder-image.png'
+								}
+								alt=''
+							/>
+
 							<h4>{workout.title}</h4>
 							<p className='date'>
 								{new Date(workout.startTime).toLocaleString()}

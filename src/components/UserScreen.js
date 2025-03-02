@@ -18,7 +18,7 @@ const UserScreen = () => {
 		}
 
 		const parsedUserData = JSON.parse(storedUserData);
-		if (!parsedUserData || !parsedUserData.user?.userId) {
+		if (!parsedUserData?.user?.userId) {
 			navigate('/');
 			return;
 		}
@@ -27,26 +27,72 @@ const UserScreen = () => {
 
 		const storedTrainerData = JSON.parse(localStorage.getItem('trainerData'));
 
-		if (
-			storedTrainerData &&
-			storedTrainerData.userId === parsedUserData.user.userId
-		) {
+		if (storedTrainerData?.userId === parsedUserData.user.userId) {
 			setTrainerData(storedTrainerData);
 		} else {
 			fetchTrainerData(parsedUserData.user.userId);
 		}
+
+		const interval = setInterval(() => {
+			checkForUpdates(parsedUserData.user.userId);
+		}, 3000); // Проверяем каждые 30 секунд
+
+		return () => clearInterval(interval);
 	}, [navigate]);
 
 	const fetchTrainerData = async userId => {
-		if (!userId) return;
 		try {
 			const response = await axios.get(
-				`https://192.168.8.158:7113/api/Trainers/user/${userId}`
+				`https://localhost:7149/api/Trainers/user/${userId}`
 			);
+			if (!response.data) throw new Error('Тренер не найден');
+
 			setTrainerData(response.data);
 			localStorage.setItem('trainerData', JSON.stringify(response.data));
 		} catch (err) {
-			setError('Не удалось загрузить данные тренера');
+			console.error('Ошибка загрузки тренера:', err);
+		}
+	};
+
+	const checkForUpdates = async userId => {
+		try {
+			const userResponse = await axios.get(
+				`https://localhost:7149/api/Accounts/${userId}`
+			);
+			if (!userResponse.data) throw new Error('Пользователь не найден');
+
+			const updatedUserData = userResponse.data;
+
+			if (
+				updatedUserData.fullName !== userData.user.fullName ||
+				updatedUserData.email !== userData.user.email ||
+				updatedUserData.avatar !== userData.user.avatar
+			) {
+				setUserData({ user: updatedUserData });
+				localStorage.setItem(
+					'userData',
+					JSON.stringify({ user: updatedUserData })
+				);
+			}
+
+			const trainerResponse = await axios.get(
+				`https://localhost:7149/api/Trainers/user/${userId}`
+			);
+			if (!trainerResponse.data) throw new Error('Тренер не найден');
+
+			const updatedTrainerData = trainerResponse.data;
+
+			if (
+				updatedTrainerData.description !== trainerData?.description ||
+				updatedTrainerData.experienceYears !== trainerData?.experienceYears ||
+				JSON.stringify(updatedTrainerData.skills) !==
+					JSON.stringify(trainerData?.skills)
+			) {
+				setTrainerData(updatedTrainerData);
+				localStorage.setItem('trainerData', JSON.stringify(updatedTrainerData));
+			}
+		} catch (error) {
+			console.error('Ошибка при проверке обновлений:', error);
 		}
 	};
 
@@ -66,11 +112,14 @@ const UserScreen = () => {
 				<div className='profile'>
 					<img
 						src={
-							userData.user.avatar || '/images/Profile_avatar_placeholder.png'
+							userData?.user?.avatar
+								? `https://localhost:7149/${userData.user.avatar}`
+								: '/images/Profile_avatar_placeholder.png'
 						}
-						alt='Avatar'
 						className='avatar'
+						alt='User Avatar'
 					/>
+
 					<div className='profile-info'>
 						<p className='profile-name'>{userData.user.fullName}</p>
 						<p>{userData.user.email}</p>
@@ -125,9 +174,6 @@ const UserScreen = () => {
 						</button>
 					</>
 				)}
-				<button onClick={() => navigate('/settings')} className='user-button'>
-					Настройки
-				</button>
 				<button onClick={handleLogout} className='user-button'>
 					Выйти
 				</button>
