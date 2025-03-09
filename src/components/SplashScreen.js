@@ -1,15 +1,20 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Импортируем useNavigate
+import { useNavigate } from 'react-router-dom';
 import '../SplashScreen.css'; // Импортируем внешний CSS файл
 
 const SplashScreen = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
+		// Проверяем, авторизован ли пользователь
+		const userData = JSON.parse(localStorage.getItem('userData'));
+		const redirectPath = userData ? '/home' : '/login';
+		const delay = 1000; // Задержка в миллисекундах (1 секунда)
+
 		const timer = setTimeout(() => {
-			console.log('Переход на страницу входа...');
-			navigate('/login'); // Переход на экран входа
-		}, 1000); // Задержка 1 секунд
+			console.log(`Переход на страницу: ${redirectPath}`);
+			navigate(redirectPath); // Условный переход
+		}, delay);
 
 		// Очистка таймера при размонтировании компонента
 		return () => clearTimeout(timer);

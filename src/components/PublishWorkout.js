@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { publishWorkout } from '../api/fitnessApi';
 
 const PublishWorkout = () => {
 	const navigate = useNavigate();
@@ -12,11 +12,11 @@ const PublishWorkout = () => {
 	const [imageFile, setImageFile] = useState(null);
 	const [error, setError] = useState('');
 	const [successMessage, setSuccessMessage] = useState('');
+	const [loading, setLoading] = useState(false);
 
-	// Получаем данные тренера из trainerData
 	const storedTrainerData = JSON.parse(localStorage.getItem('trainerData'));
 	const trainerId = storedTrainerData ? storedTrainerData.trainerId : null;
-	console.log(storedTrainerData);
+
 	const handleSubmit = async e => {
 		e.preventDefault();
 
@@ -24,6 +24,9 @@ const PublishWorkout = () => {
 			setError('Пожалуйста, заполните все поля.');
 			return;
 		}
+
+		setError('');
+		setLoading(true);
 
 		const formData = new FormData();
 		formData.append('Title', title);
@@ -33,29 +36,29 @@ const PublishWorkout = () => {
 		formData.append('ImageFile', imageFile);
 
 		try {
-			const response = await axios.post(
-				'https://localhost:7149/api/Workouts',
-				formData,
-				{
-					headers: {
-						'Content-Type': 'multipart/form-data',
-					},
-				}
-			);
+			await publishWorkout(formData); // Убрали response
 
 			setSuccessMessage('Тренировка успешно опубликована!');
 			setError('');
 			navigate('/user');
 		} catch (err) {
+			setError(
+				err.message || 'Не удалось опубликовать тренировку. Попробуйте снова.'
+			);
 			console.error('Ошибка при публикации тренировки:', err);
-			setError('Не удалось опубликовать тренировку. Попробуйте снова.');
+		} finally {
+			setLoading(false);
 		}
 	};
 
 	return (
 		<div>
 			<div className='header'>
-				<button onClick={() => navigate(-1)} className='back-button'>
+				<button
+					onClick={() => navigate(-1)}
+					className='back-button'
+					disabled={loading}
+				>
 					<FontAwesomeIcon icon={faArrowLeft} size='lg' />
 				</button>
 				<h2>Публикация тренировки</h2>
@@ -70,6 +73,8 @@ const PublishWorkout = () => {
 						value={title}
 						onChange={e => setTitle(e.target.value)}
 						className='input'
+						disabled={loading}
+						placeholder='Введите название'
 					/>
 				</div>
 				<div className='form-group'>
@@ -80,6 +85,7 @@ const PublishWorkout = () => {
 						value={startTime}
 						onChange={e => setStartTime(e.target.value)}
 						className='input'
+						disabled={loading}
 					/>
 				</div>
 				<div className='form-group'>
@@ -89,6 +95,8 @@ const PublishWorkout = () => {
 						value={description}
 						onChange={e => setDescription(e.target.value)}
 						className='textarea'
+						disabled={loading}
+						placeholder='Опишите тренировку'
 					/>
 				</div>
 				<div className='form-group'>
@@ -99,14 +107,19 @@ const PublishWorkout = () => {
 						onChange={e => setImageFile(e.target.files[0])}
 						className='input'
 						accept='image/*'
+						disabled={loading}
 					/>
 				</div>
 
 				{error && <p className='error'>{error}</p>}
 				{successMessage && <p className='success'>{successMessage}</p>}
 
-				<button type='submit' className='publish-submit-button submit-button'>
-					Опубликовать тренировку
+				<button
+					type='submit'
+					className='publish-submit-button submit-button'
+					disabled={loading}
+				>
+					{loading ? 'Публикация...' : 'Опубликовать тренировку'}
 				</button>
 			</form>
 		</div>

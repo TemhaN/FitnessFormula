@@ -1,70 +1,82 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faClock } from '@fortawesome/free-solid-svg-icons';
+import {
+	getTrainerById,
+	getTrainerWorkouts,
+	getTrainerReviews,
+	postReview,
+} from '../api/fitnessApi';
 
 const TrainerScreen = () => {
 	const { trainerId } = useParams();
+	const navigate = useNavigate();
 	const [trainerData, setTrainerData] = useState(null);
 	const [workouts, setWorkouts] = useState([]);
 	const [reviews, setReviews] = useState([]);
 	const [newReview, setNewReview] = useState({ rating: 0, comment: '' });
-	const navigate = useNavigate();
+	const [error, setError] = useState('');
+	const [loading, setLoading] = useState(true);
+
+	const userData = JSON.parse(localStorage.getItem('userData')) || null;
+
+	console.log('trainerId from params:', trainerId);
 
 	useEffect(() => {
-		fetch(`https://localhost:7149/api/Trainers/${trainerId}`)
-			.then(response => response.json())
-			.then(data => setTrainerData(data))
-			.catch(() => setTrainerData({}));
+		const fetchData = async () => {
+			try {
 
-		fetch(`https://localhost:7149/api/Workouts/trainer/${trainerId}`)
-			.then(response => response.json())
-			.then(data => setWorkouts(data));
+				const trainer = await getTrainerById(trainerId);
+				setTrainerData(trainer);
 
-		fetch(`https://localhost:7149/api/Reviews/trainer/${trainerId}`)
-			.then(response => response.json())
-			.then(data => setReviews(data));
+				const trainerWorkouts = await getTrainerWorkouts(trainerId);
+				setWorkouts(trainerWorkouts);
+
+				const trainerReviews = await getTrainerReviews(trainerId);
+				setReviews(trainerReviews);
+			} catch (err) {
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchData();
 	}, [trainerId]);
 
 	const handleReviewChange = e => {
 		const { name, value } = e.target;
-		setNewReview(prevReview => ({ ...prevReview, [name]: value }));
+		setNewReview(prev => ({ ...prev, [name]: value }));
 	};
 
-	const userData = JSON.parse(localStorage.getItem('userData')) || null;
-
-	const handleReviewSubmit = e => {
+	const handleReviewSubmit = async e => {
 		e.preventDefault();
-		if (!userData) return; // Проверяем, что пользователь авторизован
+		if (!userData || !userData.user?.userId) {
+			navigate('/login');
+			return;
+		}
 
-		fetch('https://localhost:7149/api/Reviews', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
+		if (!newReview.rating || !newReview.comment) {
+			return;
+		}
+
+		setError('');
+		try {
+			await postReview({
 				trainerId,
-				userId: userData.user.userId, // Убрал лишний user
-				rating: newReview.rating,
+				userId: userData.user.userId,
+				rating: parseInt(newReview.rating, 10),
 				comment: newReview.comment,
-			}),
-		})
-			.then(response => response.json())
-			.then(() => {
-				setNewReview({ rating: 0, comment: '' });
+			});
 
-				// Обновление списка отзывов после публикации
-				return fetch(`https://localhost:7149/api/Reviews/trainer/${trainerId}`);
-			})
-			.then(response => response.json())
-			.then(data => setReviews(data))
-			.catch(error => console.error('Ошибка при обновлении отзывов:', error));
+			setNewReview({ rating: 0, comment: '' });
+			const updatedReviews = await getTrainerReviews(trainerId);
+			setReviews(updatedReviews);
+		} catch (err) {
+		}
 	};
 
-	// Функция навигации на экран авторизации
-	const navigateToLogin = () => {
-		navigate('/');
-	};
-
-	if (!trainerData) return <p>Загрузка...</p>;
+	if (loading) return <p>Загрузка...</p>;
 
 	return (
 		<div className='trainer'>
@@ -78,31 +90,36 @@ const TrainerScreen = () => {
 				<div className='profile'>
 					<img
 						src={
-							`https://localhost:7149/${trainerData.user.avatar}` ||
-							'/images/Profile_avatar_placeholder.png'
+							trainerData?.user?.avatar
+								? `https://localhost:7149/${trainerData.user.avatar}`
+								: '/images/Profile_avatar_placeholder.png'
 						}
-						alt='Avatar'
+						alt={trainerData?.user?.fullName || 'Аватар тренера'}
 						className='avatar'
+						onError={e =>
+							(e.target.src = '/images/Profile_avatar_placeholder.png')
+						}
 					/>
 					<div className='profile-info'>
 						<p className='profile-name'>
-							{trainerData.user?.fullName || 'Имя не указано'}
+							{trainerData?.user?.fullName || 'Имя не указано'}
 						</p>
-						<p>{trainerData.user?.email || 'Почта не указана'}</p>
-						<p>Опыт: {trainerData.experienceYears || 'Не указан'} лет</p>
+						<p>{trainerData?.user?.email || 'Почта не указана'}</p>
+						<p>Опыт: {trainerData?.experienceYears || 'Не указано'} лет</p>
 					</div>
 				</div>
 			</div>
 
 			<div className='trainer-content'>
+				{error && <p className='error-message'>{error}</p>}
 				<h3>Описание</h3>
 				<p className='text-gray mt-2'>
-					{trainerData.description || 'Описание не указано'}
+					{trainerData?.description || 'Описание не указано'}
 				</p>
 
 				<h3 className='mt'>Навыки</h3>
 				<div className='skills-container'>
-					{trainerData.skills?.length > 0 ? (
+					{trainerData?.skills?.length > 0 ? (
 						trainerData.skills.map(skill => (
 							<div key={skill.skillId} className='skill-card'>
 								{skill.skillName}
@@ -125,19 +142,21 @@ const TrainerScreen = () => {
 								<div className='workout-image'>
 									<img
 										className='workout-img'
-										src={workout.imageUrl || '/images/placeholder-image.png'}
-										alt={workout.title}
-										onError={e => {
-											if (!e.target.dataset.error) {
-												console.log('Ошибка загрузки:', e.target.src);
-												e.target.dataset.error = true;
-												e.target.src = '/images/placeholder-image.png';
-											}
-										}}
+										src={
+											workout.imageUrl
+												? `https://localhost:7149${workout.imageUrl}`
+												: '/images/placeholder-image.png'
+										}
+										alt={workout.title || 'Изображение тренировки'}
+										onError={e =>
+											(e.target.src = '/images/placeholder-image.png')
+										}
 									/>
 								</div>
 								<div className='workout-text-box'>
-									<p className='workout-title'>{workout.title}</p>
+									<p className='workout-title'>
+										{workout.title || 'Без названия'}
+									</p>
 									<div className='workout-time'>
 										<FontAwesomeIcon className='time-icon' icon={faClock} />
 										<p>
@@ -164,18 +183,15 @@ const TrainerScreen = () => {
 								<div className='review-header'>
 									<img
 										src={
-											review.user?.avatar ||
-											'/images/Profile_avatar_placeholder.png'
+											review.user?.avatar
+												? `https://localhost:7149${review.user.avatar}`
+												: '/images/Profile_avatar_placeholder.png'
 										}
-										alt='User Avatar'
-										onError={e => {
-											if (!e.target.error) {
-												console.log('Ошибка загрузки:', e.target.src);
-												e.target.error = true;
-												e.target.src = '/images/Profile_avatar_placeholder.png';
-											}
-										}}
+										alt={review.user?.fullName || 'Аватар пользователя'}
 										className='review-avatar'
+										onError={e =>
+											(e.target.src = '/images/Profile_avatar_placeholder.png')
+										}
 									/>
 									<div>
 										<strong className='review-name'>
@@ -202,7 +218,7 @@ const TrainerScreen = () => {
 				</div>
 
 				<h3 className='mt'>Оставить отзыв</h3>
-				{userData && userData.user.userId ? (
+				{userData?.user?.userId ? (
 					<form onSubmit={handleReviewSubmit} className='review-form'>
 						<div className='rating-input'>
 							<div className='rating-controls'>
@@ -254,7 +270,7 @@ const TrainerScreen = () => {
 						</button>
 					</form>
 				) : (
-					<button className='submit-button' onClick={navigateToLogin}>
+					<button className='submit-button' onClick={() => navigate('/login')}>
 						Войдите, чтобы оставить комментарий
 					</button>
 				)}

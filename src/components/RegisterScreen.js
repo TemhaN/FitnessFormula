@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../api/fitnessApi'; // Импортируем функцию регистрации
+import { registerUser } from '../api/fitnessApi';
 
 const RegisterScreen = () => {
 	const navigate = useNavigate();
@@ -9,22 +9,26 @@ const RegisterScreen = () => {
 		email: '',
 		phoneNumber: '',
 		password: '',
-		role: 'user', // Стандартно — обычный пользователь
+		role: 'user', // По умолчанию — обычный пользователь
 	});
 	const [error, setError] = useState('');
-	const [userData, setUserData] = useState(null); // Для хранения данных о пользователе
+	const [loading, setLoading] = useState(false); // Добавляем состояние загрузки
 
-	// Извлекаем данные пользователя из localStorage при загрузке компонента
+	// Проверяем, авторизован ли пользователь, чтобы перенаправить его
 	useEffect(() => {
 		const storedUserData = JSON.parse(localStorage.getItem('userData'));
 		if (storedUserData) {
-			setUserData(storedUserData);
+			navigate('/home'); // Если пользователь уже авторизован, перенаправляем
 		}
-	}, []);
+	}, [navigate]);
 
 	const handleChange = e => {
 		const { name, value } = e.target;
-		setFormData({ ...formData, [name]: value });
+		setFormData(prev => ({ ...prev, [name]: value }));
+	};
+
+	const handleRoleChange = role => {
+		setFormData(prev => ({ ...prev, role }));
 	};
 
 	const handleSubmit = async e => {
@@ -41,27 +45,32 @@ const RegisterScreen = () => {
 			return;
 		}
 
+		setError(''); // Сбрасываем ошибку
+		setLoading(true); // Показываем загрузку
+
 		try {
 			if (formData.role === 'trainer') {
-				// Для тренера передаем данные на следующий экран
+				// Для тренера передаём данные на следующий экран
 				navigate('/trainer-description', { state: formData });
 			} else {
-				// Для обычного пользователя отправляем данные на сервер
+				// Для обычного пользователя регистрируем через API
 				const data = await registerUser(formData);
+				if (!data) {
+					throw new Error('Неверный ответ от сервера');
+				}
 
 				// Сохраняем данные пользователя в localStorage
 				localStorage.setItem('userData', JSON.stringify(data));
 
-				alert('Пользователь зарегистрирован');
-				navigate('/home'); // Переход на главный экран
+				alert(`Пользователь ${data.user?.fullName || 'зарегистрирован'}`);
+				navigate('/home');
 			}
 		} catch (err) {
-			setError(err.message || 'Что-то пошло не так');
+			setError(err.message || 'Ошибка при регистрации. Попробуйте снова.');
+			console.error('Ошибка регистрации:', err);
+		} finally {
+			setLoading(false); // Сбрасываем состояние загрузки
 		}
-	};
-
-	const handleRoleChange = e => {
-		setFormData({ ...formData, role: e.target.value });
 	};
 
 	return (
@@ -78,6 +87,8 @@ const RegisterScreen = () => {
 							onChange={handleChange}
 							value={formData.fullName}
 							className='input-field'
+							disabled={loading}
+							placeholder='Введите имя'
 						/>
 					</div>
 					<div className='input-label'>
@@ -88,6 +99,8 @@ const RegisterScreen = () => {
 							onChange={handleChange}
 							value={formData.email}
 							className='input-field'
+							disabled={loading}
+							placeholder='Введите email'
 						/>
 					</div>
 					<div className='input-label'>
@@ -98,6 +111,8 @@ const RegisterScreen = () => {
 							onChange={handleChange}
 							value={formData.phoneNumber}
 							className='input-field'
+							disabled={loading}
+							placeholder='Введите номер телефона'
 						/>
 					</div>
 					<div className='input-label'>
@@ -108,6 +123,8 @@ const RegisterScreen = () => {
 							onChange={handleChange}
 							value={formData.password}
 							className='input-field'
+							disabled={loading}
+							placeholder='Введите пароль'
 						/>
 					</div>
 
@@ -118,7 +135,7 @@ const RegisterScreen = () => {
 								className={`role-option ${
 									formData.role === 'user' ? 'active' : ''
 								}`}
-								onClick={() => handleRoleChange({ target: { value: 'user' } })}
+								onClick={() => handleRoleChange('user')}
 							>
 								Обычный пользователь
 							</div>
@@ -126,22 +143,23 @@ const RegisterScreen = () => {
 								className={`role-option ${
 									formData.role === 'trainer' ? 'active' : ''
 								}`}
-								onClick={() =>
-									handleRoleChange({ target: { value: 'trainer' } })
-								}
+								onClick={() => handleRoleChange('trainer')}
 							>
 								Тренер
 							</div>
 						</div>
 					</div>
 				</div>
-				<button type='submit' className='submit-button'>
-					Зарегистрироваться
+				<button type='submit' className='submit-button' disabled={loading}>
+					{loading ? 'Регистрация...' : 'Зарегистрироваться'}
 				</button>
 			</form>
 
-			{/* Кнопка для перехода на экран входа */}
-			<button onClick={() => navigate('/login')} className='register-button'>
+			<button
+				onClick={() => navigate('/login')}
+				className='register-button'
+				disabled={loading}
+			>
 				Уже есть аккаунт? <span>Войти</span>
 			</button>
 		</div>

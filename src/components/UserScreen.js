@@ -1,108 +1,68 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHouse, faUser } from '@fortawesome/free-solid-svg-icons';
+import { getUserById, getTrainerByUserId } from '../api/fitnessApi';
 
 const UserScreen = () => {
 	const navigate = useNavigate();
 	const [userData, setUserData] = useState(null);
 	const [trainerData, setTrainerData] = useState(null);
 	const [error, setError] = useState('');
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		const storedUserData = localStorage.getItem('userData');
-		if (!storedUserData) {
-			navigate('/');
-			return;
-		}
-
-		const parsedUserData = JSON.parse(storedUserData);
-		if (!parsedUserData?.user?.userId) {
-			navigate('/');
-			return;
-		}
-
-		setUserData(parsedUserData);
-
-		const storedTrainerData = JSON.parse(localStorage.getItem('trainerData'));
-
-		if (storedTrainerData?.userId === parsedUserData.user.userId) {
-			setTrainerData(storedTrainerData);
-		} else {
-			fetchTrainerData(parsedUserData.user.userId);
-		}
-
-		const interval = setInterval(() => {
-			checkForUpdates(parsedUserData.user.userId);
-		}, 3000); // Проверяем каждые 30 секунд
-
-		return () => clearInterval(interval);
-	}, [navigate]);
-
-	const fetchTrainerData = async userId => {
-		try {
-			const response = await axios.get(
-				`https://localhost:7149/api/Trainers/user/${userId}`
-			);
-			if (!response.data) throw new Error('Тренер не найден');
-
-			setTrainerData(response.data);
-			localStorage.setItem('trainerData', JSON.stringify(response.data));
-		} catch (err) {
-			console.error('Ошибка загрузки тренера:', err);
-		}
-	};
-
-	const checkForUpdates = async userId => {
-		try {
-			const userResponse = await axios.get(
-				`https://localhost:7149/api/Accounts/${userId}`
-			);
-			if (!userResponse.data) throw new Error('Пользователь не найден');
-
-			const updatedUserData = userResponse.data;
-
-			if (
-				updatedUserData.fullName !== userData.user.fullName ||
-				updatedUserData.email !== userData.user.email ||
-				updatedUserData.avatar !== userData.user.avatar
-			) {
-				setUserData({ user: updatedUserData });
-				localStorage.setItem(
-					'userData',
-					JSON.stringify({ user: updatedUserData })
-				);
+		const initializeData = async () => {
+			const storedUserData = localStorage.getItem('userData');
+			if (!storedUserData) {
+				navigate('/login');
+				return;
 			}
 
-			const trainerResponse = await axios.get(
-				`https://localhost:7149/api/Trainers/user/${userId}`
-			);
-			if (!trainerResponse.data) throw new Error('Тренер не найден');
-
-			const updatedTrainerData = trainerResponse.data;
-
-			if (
-				updatedTrainerData.description !== trainerData?.description ||
-				updatedTrainerData.experienceYears !== trainerData?.experienceYears ||
-				JSON.stringify(updatedTrainerData.skills) !==
-					JSON.stringify(trainerData?.skills)
-			) {
-				setTrainerData(updatedTrainerData);
-				localStorage.setItem('trainerData', JSON.stringify(updatedTrainerData));
+			const parsedUserData = JSON.parse(storedUserData);
+			if (!parsedUserData?.user?.userId) {
+				navigate('/login');
+				return;
 			}
-		} catch (error) {
-			console.error('Ошибка при проверке обновлений:', error);
-		}
-	};
+
+			setUserData(parsedUserData);
+			setLoading(true);
+
+			// Встроенная функция fetchInitialData
+			try {
+				const [user, trainer] = await Promise.all([
+					getUserById(parsedUserData.user.userId),
+					getTrainerByUserId(parsedUserData.user.userId),
+				]);
+
+				if (user) {
+					const newUserData = { ...parsedUserData, user };
+					setUserData(newUserData);
+					localStorage.setItem('userData', JSON.stringify(newUserData));
+				}
+
+				if (trainer) {
+					setTrainerData(trainer);
+					localStorage.setItem('trainerData', JSON.stringify(trainer));
+				}
+			} catch (err) {
+				setError('Ошибка при загрузке данных');
+				console.error('Ошибка загрузки данных:', err);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		initializeData();
+	}, [navigate]); // Зависимость только от navigate
 
 	const handleLogout = () => {
 		localStorage.removeItem('userData');
 		localStorage.removeItem('trainerData');
-		navigate('/');
+		navigate('/login');
 	};
 
-	if (!userData) return <p>Загрузка...</p>;
+	if (loading || !userData) return <p>Загрузка...</p>;
 
 	return (
 		<div className='user'>
@@ -117,24 +77,29 @@ const UserScreen = () => {
 								: '/images/Profile_avatar_placeholder.png'
 						}
 						className='avatar'
-						alt='User Avatar'
+						alt={userData?.user?.fullName || 'Аватар пользователя'}
+						onError={e =>
+							(e.target.src = '/images/Profile_avatar_placeholder.png')
+						}
 					/>
-
 					<div className='profile-info'>
-						<p className='profile-name'>{userData.user.fullName}</p>
-						<p>{userData.user.email}</p>
+						<p className='profile-name'>
+							{userData.user.fullName || 'Без имени'}
+						</p>
+						<p>{userData.user.email || 'Email не указан'}</p>
 						{trainerData && (
 							<div className='trainer-info'>
 								<h3>Информация о тренере</h3>
 								<p>
-									<strong>Описание:</strong> {trainerData.description}
+									<strong>Описание:</strong>{' '}
+									{trainerData.description || 'Нет описания'}
 								</p>
-								<p>Опыт {trainerData.experienceYears} лет</p>
+								<p>Опыт: {trainerData.experienceYears || 0} лет</p>
 								<p>
-									<strong>Скилы:</strong>{' '}
+									<strong>Навыки:</strong>{' '}
 									{trainerData.skills
 										?.map(skill => skill.skillName)
-										.join(', ') || 'Нет данных'}
+										.join(', ') || 'Нет навыков'}
 								</p>
 							</div>
 						)}
@@ -156,7 +121,7 @@ const UserScreen = () => {
 					onClick={() => navigate('/user/workoutregistration')}
 					className='user-button'
 				>
-					Занятия на которые вы подписаны
+					Занятия, на которые вы подписаны
 				</button>
 				{trainerData && (
 					<>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { registerTrainer, getSkills } from '../api/fitnessApi';
 
@@ -7,68 +7,80 @@ const TrainerSkills = () => {
 	const { state } = useLocation();
 	const [skills, setSkills] = useState([]);
 	const [selectedSkills, setSelectedSkills] = useState([]);
+	const [formData] = useState(state || {});
 	const [error, setError] = useState('');
-	const [formData, setFormData] = useState(state || {});
+	const [loading, setLoading] = useState(false);
 
 	useEffect(() => {
-		getSkills()
-			.then(data => setSkills(data))
-			.catch(err => setError('Не удалось загрузить скилы'));
-	}, []);
+		if (!state) {
+			setError('Данные тренера отсутствуют');
+			navigate('/register');
+			return;
+		}
+
+		const fetchSkills = async () => {
+			try {
+				setLoading(true);
+				const skillsData = await getSkills();
+				setSkills(skillsData || []);
+			} catch (err) {
+				setError(err.message || 'Не удалось загрузить навыки');
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchSkills();
+	}, [state, navigate]);
 
 	const handleSkillChange = skillId => {
-		setSelectedSkills(prevSkills => {
-			// Добавляем или удаляем скил из выбранных
-			const newSelectedSkills = prevSkills.includes(skillId)
-				? prevSkills.filter(id => id !== skillId)
-				: [skillId, ...prevSkills]; // Ставим выбранный скил в начало списка
-
-			// Теперь сортируем список, чтобы выбранные скиллы были всегда вверху
-			const updatedSkills = [...skills];
-			updatedSkills.sort((a, b) => {
-				// Если скилл выбран, он поднимется в начало
-				const isASelected = newSelectedSkills.includes(a.skillId);
-				const isBSelected = newSelectedSkills.includes(b.skillId);
-				if (isASelected && !isBSelected) return -1;
-				if (!isASelected && isBSelected) return 1;
-				return 0;
-			});
-			setSkills(updatedSkills);
-			return newSelectedSkills;
-		});
+		setSelectedSkills(prev =>
+			prev.includes(skillId)
+				? prev.filter(id => id !== skillId)
+				: [...prev, skillId]
+		);
 	};
 
 	const handleSubmit = async () => {
-		try {
-			if (!formData) {
-				setError('Данные тренера не найдены');
-				return;
-			}
+		if (selectedSkills.length === 0) {
+			setError('Пожалуйста, выберите хотя бы один навык');
+			return;
+		}
 
+		setError('');
+		setLoading(true);
+
+		try {
 			const formDataToSubmit = {
-				...formData,
+				description: formData.description || '',
+				experienceYears: formData.experienceYears || 0,
 				skillIds: selectedSkills,
+				user: {
+					fullName: formData.fullName || '',
+					email: formData.email || '',
+					phoneNumber: formData.phoneNumber || '',
+					password: formData.password || '',
+					avatar: formData.avatar || '',
+				},
 			};
 
 			console.log('Данные перед отправкой:', formDataToSubmit);
 
 			const response = await registerTrainer(formDataToSubmit);
 
-			if (response?.user && response?.session) {
-				localStorage.setItem(
-					'userData',
-					JSON.stringify({
-						message: 'Пользователь успешно создан',
-						user: response.user,
-						session: response.session,
-					})
-				);
-			}
+			const userData = {
+				user: response.user || { fullName: formData.fullName },
+				token: response.session || response.token,
+			};
 
-			alert('Тренер успешно зарегистрирован');
+			localStorage.setItem('userData', JSON.stringify(userData));
+			alert(`Тренер ${formData.fullName || 'успешно зарегистрирован'}`);
 			navigate('/home');
 		} catch (err) {
-			setError('Ошибка при регистрации тренера');
+			setError(err.message || 'Ошибка при регистрации тренера');
+			console.error('Ошибка регистрации тренера:', err);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -77,22 +89,32 @@ const TrainerSkills = () => {
 			<div className='trainer-skills-container'>
 				<h2 className='trainer-skills-title'>Выберите свои навыки</h2>
 				{error && <p className='error-message'>{error}</p>}
-				<div className='skills-list'>
-					{skills.map(skill => {
-						const isSelected = selectedSkills.includes(skill.skillId);
-						return (
-							<div
-								key={skill.skillId}
-								className={`skill-item ${isSelected ? 'selected' : ''}`}
-								onClick={() => handleSkillChange(skill.skillId)}
-							>
-								<span className='skill-text'>{skill.skillName}</span>
-							</div>
-						);
-					})}
-				</div>
-				<button onClick={handleSubmit} className='submit-button'>
-					Зарегистрировать тренера
+				{loading && skills.length === 0 ? (
+					<p>Загрузка навыков...</p>
+				) : skills.length > 0 ? (
+					<div className='skills-list'>
+						{skills.map(skill => {
+							const isSelected = selectedSkills.includes(skill.skillId);
+							return (
+								<div
+									key={skill.skillId}
+									className={`skill-item ${isSelected ? 'selected' : ''}`}
+									onClick={() => !loading && handleSkillChange(skill.skillId)}
+								>
+									<span className='skill-text'>{skill.skillName}</span>
+								</div>
+							);
+						})}
+					</div>
+				) : (
+					<p>Навыки не найдены</p>
+				)}
+				<button
+					onClick={handleSubmit}
+					className='submit-button'
+					disabled={loading}
+				>
+					{loading ? 'Регистрация...' : 'Зарегистрировать тренера'}
 				</button>
 			</div>
 		</div>

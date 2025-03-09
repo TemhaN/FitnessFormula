@@ -2,22 +2,40 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClock, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { getUserWorkoutRegistrations } from '../api/fitnessApi';
 
 const UserWorkoutsScreen = () => {
-	const [workouts, setWorkouts] = useState([]);
 	const navigate = useNavigate();
+	const [workouts, setWorkouts] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState('');
 
 	useEffect(() => {
-		const userData = JSON.parse(localStorage.getItem('userData'));
-		if (!userData) return;
+		const fetchWorkouts = async () => {
+			const userData = JSON.parse(localStorage.getItem('userData'));
+			if (!userData || !userData.user?.userId) {
+				navigate('/login');
+				return;
+			}
 
-		fetch(
-			`https://localhost:7149/api/WorkoutRegistrations/user/${userData.user.userId}`
-		)
-			.then(response => response.json())
-			.then(data => setWorkouts(data))
-			.catch(error => console.error('Ошибка загрузки занятий:', error));
-	}, []);
+			try {
+				setLoading(true);
+				const registrations = await getUserWorkoutRegistrations(
+					userData.user.userId
+				);
+				setWorkouts(registrations || []);
+			} catch (err) {
+				setError(err.message || 'Ошибка загрузки занятий');
+				console.error('Ошибка загрузки занятий:', err);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchWorkouts();
+	}, [navigate]);
+
+	if (loading) return <p>Загрузка...</p>;
 
 	return (
 		<div className='user-workouts'>
@@ -28,6 +46,7 @@ const UserWorkoutsScreen = () => {
 				<h2>Мои занятия</h2>
 			</div>
 
+			{error && <p className='error-message'>{error}</p>}
 			{workouts.length > 0 ? (
 				<div className='workouts-list'>
 					{workouts.map(registration => (
@@ -40,21 +59,20 @@ const UserWorkoutsScreen = () => {
 						>
 							<img
 								src={
-									`https://localhost:7149${registration.workout.imageUrl}` ||
-									'/images/placeholder-image.png'
+									registration.workout.imageUrl
+										? `https://localhost:7149${registration.workout.imageUrl}`
+										: '/images/placeholder-image.png'
 								}
 								alt={registration.workout.title}
 								className='workout-img-register'
-								onError={e => {
-									e.target.src = '/images/placeholder-image.png';
-								}}
+								onError={e => (e.target.src = '/images/placeholder-image.png')}
 							/>
 							<div className='workout-info'>
 								<p className='workout-title mt-2'>
-									{registration.workout.title}
+									{registration.workout.title || 'Без названия'}
 								</p>
 								<p className='workout-description'>
-									{registration.workout.description}
+									{registration.workout.description || 'Описание отсутствует'}
 								</p>
 								<div className='workout-time'>
 									<FontAwesomeIcon className='time-icon' icon={faClock} />

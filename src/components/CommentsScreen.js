@@ -1,31 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { getUserReviews } from '../api/fitnessApi'; // Импортируем функцию (проверьте путь)
 
 const CommentsScreen = () => {
 	const [comments, setComments] = useState([]);
 	const [error, setError] = useState('');
-	const navigate = useNavigate(); // Используем useNavigate
+	const navigate = useNavigate();
 
 	useEffect(() => {
-		// Загружаем данные пользователя из localStorage
 		const userData = JSON.parse(localStorage.getItem('userData'));
 
 		if (userData && userData.user.userId) {
-			const userId = userData.user.userId; // Извлекаем userId из userData
+			const userId = userData.user.userId;
 
-			const commentsUrl = `https://localhost:7149/api/Reviews/user/${userId}`;
-			axios
-				.get(commentsUrl)
-				.then(response => {
-					setComments(response.data); // Сохраняем отзывы
-				})
-				.catch(err => {
+			const fetchComments = async () => {
+				try {
+					const reviews = await getUserReviews(userId); // Используем функцию из fitnessApi
+					setComments(reviews);
+				} catch (err) {
 					console.error('Error fetching reviews:', err);
 					// setError('Не удалось загрузить комментарии');
-				});
+				}
+			};
+
+			fetchComments();
 		} else {
 			setError('Данные пользователя не найдены');
 		}
@@ -41,7 +41,6 @@ const CommentsScreen = () => {
 			</div>
 			{error && <p>{error}</p>}
 
-			{/* Отображаем комментарии */}
 			{comments.length > 0 ? (
 				<div className='comments-user'>
 					{comments.map(comment => (

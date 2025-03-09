@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { updateUserProfile } from '../api/fitnessApi';
 
 const EditProfileScreen = () => {
 	const navigate = useNavigate();
@@ -17,19 +17,19 @@ const EditProfileScreen = () => {
 	useEffect(() => {
 		const storedUserData = localStorage.getItem('userData');
 		if (!storedUserData) {
-			navigate('/');
+			navigate('/login'); // Перенаправляем на страницу входа
 			return;
 		}
 
 		const parsedUserData = JSON.parse(storedUserData);
 		if (!parsedUserData?.user?.userId) {
-			navigate('/');
+			navigate('/login');
 			return;
 		}
 
 		setUserData(parsedUserData);
-		setFullName(parsedUserData.user.fullName);
-		setEmail(parsedUserData.user.email);
+		setFullName(parsedUserData.user.fullName || '');
+		setEmail(parsedUserData.user.email || '');
 		setPhoneNumber(parsedUserData.user.phoneNumber || '');
 		setAvatar(parsedUserData.user.avatar || '');
 	}, [navigate]);
@@ -38,7 +38,7 @@ const EditProfileScreen = () => {
 		const file = e.target.files[0];
 		if (file) {
 			setAvatarFile(file);
-			setAvatar(URL.createObjectURL(file)); // Показываем превью
+			setAvatar(URL.createObjectURL(file));
 		}
 	};
 
@@ -54,26 +54,18 @@ const EditProfileScreen = () => {
 				formData.append('AvatarFile', avatarFile);
 			}
 
-			const response = await axios.put(
-				`https://localhost:7149/api/Accounts/update/${userData.user.userId}`,
-				formData,
-				{ headers: { 'Content-Type': 'multipart/form-data' } }
-			);
+			const response = await updateUserProfile(userData.user.userId, formData);
 
-			if (!response.data) throw new Error('Ошибка обновления данных');
+			if (!response.user) throw new Error('Ошибка обновления данных');
 
-			// Сохраняем токен перед обновлением userData
 			const currentToken = userData.token;
-
-			// Обновляем userData, но сохраняем токен
 			const updatedUser = {
-				user: response.data.user,
-				token: currentToken, // Восстанавливаем токен
+				user: response.user,
+				token: currentToken,
 			};
 
 			setUserData(updatedUser);
 			localStorage.setItem('userData', JSON.stringify(updatedUser));
-
 			navigate('/user');
 		} catch (err) {
 			setError('Не удалось обновить профиль. Попробуйте еще раз.');
@@ -122,7 +114,13 @@ const EditProfileScreen = () => {
 					</div>
 					<div className='avatar-section input-label mt-2'>
 						<label className='mt-2'>Аватар</label>
-						{avatar && <img src={avatar} className='avatar-preview' />}
+						{avatar && (
+							<img
+								src={avatar}
+								className='avatar-preview'
+								alt='Предпросмотр аватара пользователя'
+							/>
+						)}
 						<input
 							type='file'
 							accept='image/*'

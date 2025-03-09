@@ -3,46 +3,42 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 const TrainerDescription = () => {
 	const navigate = useNavigate();
-	const { state } = useLocation(); // Получаем данные, переданные из RegisterScreen
-
+	const { state } = useLocation();
 	const [formData, setFormData] = useState({
-		user: {
-			fullName: state.fullName,
-			email: state.email,
-			phoneNumber: state.phoneNumber,
-			password: state.password,
-			avatar: state.avatar,
-		},
+		fullName: state?.fullName || '',
+		email: state?.email || '',
+		phoneNumber: state?.phoneNumber || '',
+		password: state?.password || '',
+		avatar: state?.avatar || '',
 		description: '',
 		experienceYears: 0,
+		role: 'trainer',
 	});
-
 	const [error, setError] = useState('');
+	const loading = false; // Заменили useState на константу, так как setLoading не используется
+
+	useEffect(() => {
+		if (!state || !state.fullName || !state.email) {
+			setError('Необходимые данные для регистрации отсутствуют');
+			navigate('/register');
+		}
+	}, [state, navigate]);
 
 	const handleChange = e => {
 		const { name, value } = e.target;
-		setFormData({ ...formData, [name]: value });
+		setFormData(prev => ({ ...prev, [name]: value }));
 	};
 
-	const handleSubmit = async e => {
+	const handleSubmit = e => {
 		e.preventDefault();
-		try {
-			// Сохраняем данные о пользователе в localStorage
-			const userData = {
-				fullName: formData.fullName,
-				email: formData.email,
-				phoneNumber: formData.phoneNumber,
-				password: formData.password,
-				avatar: formData.avatar,
-			};
 
-			localStorage.setItem('userData', JSON.stringify(userData));
-
-			// Переход на экран выбора скилов
-			navigate('/trainer-skills', { state: formData });
-		} catch (err) {
-			setError(err.message || 'Что-то пошло не так');
+		if (!formData.description || formData.experienceYears < 0) {
+			setError('Пожалуйста, заполните описание и укажите корректный стаж');
+			return;
 		}
+
+		setError('');
+		navigate('/trainer-skills', { state: formData });
 	};
 
 	return (
@@ -60,6 +56,7 @@ const TrainerDescription = () => {
 							onChange={handleChange}
 							className='input-field description-input'
 							value={formData.description}
+							disabled={loading}
 						/>
 					</div>
 					<p className='text-align-center'>Ваш стаж опыта</p>
@@ -68,11 +65,12 @@ const TrainerDescription = () => {
 							type='button'
 							className='experience-button'
 							onClick={() =>
-								setFormData({
-									...formData,
-									experienceYears: Math.max(formData.experienceYears - 1, 0),
-								})
+								setFormData(prev => ({
+									...prev,
+									experienceYears: Math.max(prev.experienceYears - 1, 0),
+								}))
 							}
+							disabled={loading}
 						>
 							-
 						</button>
@@ -83,16 +81,17 @@ const TrainerDescription = () => {
 							type='button'
 							className='experience-button'
 							onClick={() =>
-								setFormData({
-									...formData,
-									experienceYears: formData.experienceYears + 1,
-								})
+								setFormData(prev => ({
+									...prev,
+									experienceYears: prev.experienceYears + 1,
+								}))
 							}
+							disabled={loading}
 						>
 							+
 						</button>
 					</div>
-					<button type='submit' className='submit-button'>
+					<button type='submit' className='submit-button' disabled={loading}>
 						Далее
 					</button>
 				</form>
