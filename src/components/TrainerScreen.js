@@ -26,7 +26,6 @@ const TrainerScreen = () => {
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
-
 				const trainer = await getTrainerById(trainerId);
 				setTrainerData(trainer);
 
@@ -72,8 +71,7 @@ const TrainerScreen = () => {
 			setNewReview({ rating: 0, comment: '' });
 			const updatedReviews = await getTrainerReviews(trainerId);
 			setReviews(updatedReviews);
-		} catch (err) {
-		}
+		} catch (err) {}
 	};
 
 	if (loading) return <p>Загрузка...</p>;
@@ -144,7 +142,7 @@ const TrainerScreen = () => {
 										className='workout-img'
 										src={
 											workout.imageUrl
-												? `https://localhost:7149${workout.imageUrl}`
+												? `https://localhost:7149/${workout.imageUrl}`
 												: '/images/placeholder-image.png'
 										}
 										alt={workout.title || 'Изображение тренировки'}
@@ -184,7 +182,7 @@ const TrainerScreen = () => {
 									<img
 										src={
 											review.user?.avatar
-												? `https://localhost:7149${review.user.avatar}`
+												? `https://localhost:7149/${review.user.avatar}`
 												: '/images/Profile_avatar_placeholder.png'
 										}
 										alt={review.user?.fullName || 'Аватар пользователя'}

@@ -29,6 +29,7 @@ body {
 .workout-img-register {
 	width: 100%;
 	max-width: 275px;
+
 	border-radius: 22px;
 }
 /* Заголовок */
@@ -380,6 +381,10 @@ body {
 	border-radius: 20px 20px 0 0;
 	width: 100%;
 	height: auto;
+	height: 100%;
+	min-height: 120px;
+	max-height: 120px;
+	object-fit: cover;
 }
 .workout-text-box {
 	padding: 5px 10px;
@@ -794,6 +799,7 @@ label {
 .review-avatar {
 	width: 40px;
 	height: 40px;
+	object-fit: cover;
 	border-radius: 50%;
 }
 
@@ -912,4 +918,51 @@ label {
 }
 .height-box {
 	height: 200px;
+}
+
+.registrations-section {
+	margin-top: 20px;
+	padding: 15px;
+	border-top: 1px solid #ccc;
+}
+
+.registrations-list {
+	list-style: none;
+	padding: 0;
+	text-align: left;
+}
+
+.registration-item {
+	display: flex;
+	align-items: center;
+	padding: 10px;
+	border-bottom: 1px solid #eee;
+}
+
+.user-avatar {
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
+	margin-right: 15px;
+	object-fit: cover;
+}
+
+.user-info {
+	flex: 1;
+}
+
+.user-info p {
+	margin: 5px 0;
+}
+
+.registration-message {
+	margin-top: 10px;
+}
+
+.success {
+	color: #28a745;
+}
+
+.error {
+	color: #dc3545;
 }

@@ -2,35 +2,56 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
-import { getWorkoutById, registerForWorkout } from '../api/fitnessApi';
+import {
+	getWorkoutById,
+	registerForWorkout,
+	getWorkoutRegistrations,
+	getTrainerByUserId,
+} from '../api/fitnessApi';
 
 const WorkoutScreen = () => {
 	const { workoutId } = useParams();
 	const navigate = useNavigate();
 	const [workout, setWorkout] = useState(null);
+	const [registrations, setRegistrations] = useState(null);
 	const [error, setError] = useState('');
 	const [registrationMessage, setRegistrationMessage] = useState('');
 	const [loading, setLoading] = useState(true);
+	const [isTrainer, setIsTrainer] = useState(false);
 
 	const userData = JSON.parse(localStorage.getItem('userData')) || null;
 	const userId = userData?.user?.userId || null;
 
 	useEffect(() => {
-		const fetchWorkout = async () => {
+		const fetchWorkoutData = async () => {
 			try {
 				setLoading(true);
 				const workoutData = await getWorkoutById(workoutId);
 				setWorkout(workoutData);
+
+				// Проверяем, является ли текущий пользователь тренером этой тренировки
+				if (userId) {
+					const trainerData = await getTrainerByUserId(userId);
+					if (trainerData && trainerData.trainerId === workoutData.trainerId) {
+						setIsTrainer(true);
+						// Загружаем список зарегистрированных только для тренера
+						const registrationsData = await getWorkoutRegistrations(
+							workoutId,
+							trainerData.trainerId
+						);
+						setRegistrations(registrationsData);
+					}
+				}
 			} catch (err) {
-				setError(err.message || 'Не удалось загрузить информацию о тренировке');
-				console.error('Ошибка загрузки тренировки:', err);
+				// setError(err.message || 'Не удалось загрузить информацию о тренировке');
+				// console.error('Ошибка загрузки данных:', err);
 			} finally {
 				setLoading(false);
 			}
 		};
 
-		fetchWorkout();
-	}, [workoutId]);
+		fetchWorkoutData();
+	}, [workoutId, userId]);
 
 	const handleRegister = async () => {
 		if (!userId) {
@@ -38,7 +59,7 @@ const WorkoutScreen = () => {
 			return;
 		}
 
-		setRegistrationMessage(''); // Сбрасываем сообщение
+		setRegistrationMessage('');
 		setLoading(true);
 
 		try {
@@ -50,7 +71,7 @@ const WorkoutScreen = () => {
 			setRegistrationMessage(
 				err.message || 'Ошибка при регистрации на тренировку'
 			);
-			console.error('Ошибка регистрации:', err);
+			// console.error('Ошибка регистрации:', err);
 		} finally {
 			setLoading(false);
 		}
@@ -74,7 +95,7 @@ const WorkoutScreen = () => {
 			<div className='workout-box'>
 				{workout.imageUrl ? (
 					<img
-						src={`https://localhost:7149${workout.imageUrl}`}
+						src={`https://localhost:7149/${workout.imageUrl}`}
 						className='workout-image-screen'
 						alt={workout.title}
 						onError={e => (e.target.src = '/images/placeholder-image.png')}
@@ -98,7 +119,7 @@ const WorkoutScreen = () => {
 								className='trainer-img'
 								src={
 									workout.trainer?.avatar
-										? `https://localhost:7149${workout.trainer.avatar}`
+										? `https://localhost:7149/${workout.trainer.avatar}`
 										: '/images/placeholder-image.png'
 								}
 								alt={workout.trainer?.fullName || 'Тренер'}
@@ -112,17 +133,20 @@ const WorkoutScreen = () => {
 						</h4>
 					</div>
 
-					<button
-						onClick={handleRegister}
-						className='publish-submit-button submit-button'
-						disabled={loading}
-					>
-						{loading
-							? 'Регистрация...'
-							: userId
-							? 'Записаться на тренировку'
-							: 'Войдите, чтобы записаться'}
-					</button>
+					{/* Кнопка записи отображается только для не-тренеров */}
+					{!isTrainer && (
+						<button
+							onClick={handleRegister}
+							className='publish-submit-button submit-button'
+							disabled={loading}
+						>
+							{loading
+								? 'Регистрация...'
+								: userId
+								? 'Записаться на тренировку'
+								: 'Войдите, чтобы записаться'}
+						</button>
+					)}
 
 					{registrationMessage && (
 						<p
@@ -132,6 +156,48 @@ const WorkoutScreen = () => {
 						>
 							{registrationMessage}
 						</p>
+					)}
+
+					{/* Отображение списка зарегистрированных только для тренера */}
+					{isTrainer && registrations && (
+						<div className='registrations-section mt'>
+							<h3>
+								Зарегистрированные пользователи ({registrations.totalUsers})
+							</h3>
+							{registrations.totalUsers > 0 ? (
+								<ul className='registrations-list'>
+									{registrations.registrations.map(reg => (
+										<li key={reg.registrationId} className='registration-item'>
+											<img
+												src={
+													reg.user.avatar
+														? `https://localhost:7149/${reg.user.avatar}`
+														: '/images/placeholder-image.png'
+												}
+												alt={reg.user.fullName}
+												className='user-avatar'
+												onError={e =>
+													(e.target.src = '/images/placeholder-image.png')
+												}
+											/>
+											<div className='user-info'>
+												<p>
+													<strong>{reg.user.fullName}</strong>
+												</p>
+												<p>Email: {reg.user.email}</p>
+												<p>Телефон: {reg.user.phoneNumber}</p>
+												<p>
+													Дата регистрации:{' '}
+													{new Date(reg.registrationDate).toLocaleString()}
+												</p>
+											</div>
+										</li>
+									))}
+								</ul>
+							) : (
+								<p>Никто ещё не записан на это занятие.</p>
+							)}
+						</div>
 					)}
 				</div>
 			</div>

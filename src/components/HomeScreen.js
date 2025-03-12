@@ -91,7 +91,7 @@ const HomeScreen = () => {
 												className='workout-img'
 												src={
 													workout.imageUrl
-														? `https://localhost:7149${workout.imageUrl}`
+														? `https://localhost:7149/${workout.imageUrl}`
 														: '/images/placeholder-image.png'
 												}
 												alt={workout.title}

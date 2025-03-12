@@ -237,3 +237,15 @@ export const registerForWorkout = async (userId, workoutId) => {
 		throw error.response?.data || 'Ошибка при регистрации на тренировку';
 	}
 };
+// Функция для получения списка зарегистрированных пользователей на тренировку
+export const getWorkoutRegistrations = async (workoutId, trainerId) => {
+    try {
+        const response = await axios.get(
+            `${API_URL}/Workouts/${workoutId}/registrations/trainer/${trainerId}`
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Ошибка при получении списка зарегистрированных:', error);
+        throw error.response?.data || 'Ошибка при получении списка зарегистрированных';
+    }
+};

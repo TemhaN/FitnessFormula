@@ -60,7 +60,7 @@ const UserWorkoutsScreen = () => {
 							<img
 								src={
 									registration.workout.imageUrl
-										? `https://localhost:7149${registration.workout.imageUrl}`
+										? `https://localhost:7149/${registration.workout.imageUrl}`
 										: '/images/placeholder-image.png'
 								}
 								alt={registration.workout.title}
