@@ -53,7 +53,7 @@ const WorkoutScreen = () => {
 						console.log('User registrations:', userRegistrations);
 						const parsedWorkoutId = parseInt(workoutId);
 						const isUserRegistered = userRegistrations.some(
-							reg => reg.workoutId === parsedWorkoutId
+							reg => reg.workout.workoutId === parsedWorkoutId
 						);
 						setIsRegistered(isUserRegistered);
 						console.log(
@@ -65,7 +65,12 @@ const WorkoutScreen = () => {
 							isUserRegistered
 						);
 					}
-					console.log('Is trainer:', isTrainer, 'Is registered:', isRegistered);
+					console.log(
+						'Initial state - isTrainer:',
+						isTrainer,
+						'isRegistered:',
+						isRegistered
+					);
 				}
 			} catch (err) {
 				setError(err.message || 'Не удалось загрузить информацию о тренировке');
