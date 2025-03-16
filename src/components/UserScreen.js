@@ -28,7 +28,6 @@ const UserScreen = () => {
 			setUserData(parsedUserData);
 			setLoading(true);
 
-			// Встроенная функция fetchInitialData
 			try {
 				const [user, trainer] = await Promise.all([
 					getUserById(parsedUserData.user.userId),
@@ -54,7 +53,7 @@ const UserScreen = () => {
 		};
 
 		initializeData();
-	}, [navigate]); // Зависимость только от navigate
+	}, [navigate]);
 
 	const handleLogout = () => {
 		localStorage.removeItem('userData');
@@ -117,12 +116,15 @@ const UserScreen = () => {
 				<button onClick={() => navigate('/comments')} className='user-button'>
 					Комментарии
 				</button>
-				<button
-					onClick={() => navigate('/user/workoutregistration')}
-					className='user-button'
-				>
-					Занятия, на которые вы подписаны
-				</button>
+				{/* Кнопка "Занятия, на которые вы подписаны" скрыта для тренеров */}
+				{!trainerData && (
+					<button
+						onClick={() => navigate('/user/workoutregistration')}
+						className='user-button'
+					>
+						Занятия, на которые вы подписаны
+					</button>
+				)}
 				{trainerData && (
 					<>
 						<button

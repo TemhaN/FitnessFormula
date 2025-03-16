@@ -7,6 +7,7 @@ import {
 	registerForWorkout,
 	getWorkoutRegistrations,
 	getTrainerByUserId,
+	getUserWorkoutRegistrations,
 } from '../api/fitnessApi';
 
 const WorkoutScreen = () => {
@@ -14,6 +15,7 @@ const WorkoutScreen = () => {
 	const navigate = useNavigate();
 	const [workout, setWorkout] = useState(null);
 	const [registrations, setRegistrations] = useState(null);
+	const [isRegistered, setIsRegistered] = useState(false);
 	const [error, setError] = useState('');
 	const [registrationMessage, setRegistrationMessage] = useState('');
 	const [loading, setLoading] = useState(true);
@@ -28,23 +30,46 @@ const WorkoutScreen = () => {
 				setLoading(true);
 				const workoutData = await getWorkoutById(workoutId);
 				setWorkout(workoutData);
+				console.log('Workout data:', workoutData);
 
-				// Проверяем, является ли текущий пользователь тренером этой тренировки
 				if (userId) {
+					// Проверяем, является ли пользователь тренером
 					const trainerData = await getTrainerByUserId(userId);
-					if (trainerData && trainerData.trainerId === workoutData.trainerId) {
+					console.log('Trainer data:', trainerData);
+
+					if (trainerData) {
 						setIsTrainer(true);
-						// Загружаем список зарегистрированных только для тренера
-						const registrationsData = await getWorkoutRegistrations(
-							workoutId,
-							trainerData.trainerId
+						if (trainerData.trainerId === workoutData.trainerId) {
+							const registrationsData = await getWorkoutRegistrations(
+								workoutId,
+								trainerData.trainerId
+							);
+							setRegistrations(registrationsData);
+							console.log('Registrations for trainer:', registrationsData);
+						}
+					} else {
+						// Для не-тренеров проверяем регистрацию
+						const userRegistrations = await getUserWorkoutRegistrations(userId);
+						console.log('User registrations:', userRegistrations);
+						const parsedWorkoutId = parseInt(workoutId);
+						const isUserRegistered = userRegistrations.some(
+							reg => reg.workoutId === parsedWorkoutId
 						);
-						setRegistrations(registrationsData);
+						setIsRegistered(isUserRegistered);
+						console.log(
+							'User ID:',
+							userId,
+							'Workout ID:',
+							parsedWorkoutId,
+							'Is registered:',
+							isUserRegistered
+						);
 					}
+					console.log('Is trainer:', isTrainer, 'Is registered:', isRegistered);
 				}
 			} catch (err) {
-				// setError(err.message || 'Не удалось загрузить информацию о тренировке');
-				// console.error('Ошибка загрузки данных:', err);
+				setError(err.message || 'Не удалось загрузить информацию о тренировке');
+				console.error('Ошибка загрузки данных:', err);
 			} finally {
 				setLoading(false);
 			}
@@ -67,11 +92,13 @@ const WorkoutScreen = () => {
 			setRegistrationMessage(
 				response.message || 'Вы успешно записаны на тренировку'
 			);
+			setIsRegistered(true);
+			setTimeout(() => setRegistrationMessage(''), 2000);
 		} catch (err) {
 			setRegistrationMessage(
 				err.message || 'Ошибка при регистрации на тренировку'
 			);
-			// console.error('Ошибка регистрации:', err);
+			setTimeout(() => setRegistrationMessage(''), 2000);
 		} finally {
 			setLoading(false);
 		}
@@ -133,8 +160,8 @@ const WorkoutScreen = () => {
 						</h4>
 					</div>
 
-					{/* Кнопка записи отображается только для не-тренеров */}
-					{!isTrainer && (
+					{/* Кнопка записи только для не-тренеров и не зарегистрированных */}
+					{!isTrainer && !isRegistered && (
 						<button
 							onClick={handleRegister}
 							className='publish-submit-button submit-button'
@@ -148,7 +175,16 @@ const WorkoutScreen = () => {
 						</button>
 					)}
 
-					{registrationMessage && (
+					{/* Лог перед рендерингом */}
+					{console.log(
+						'Rendering - isTrainer:',
+						isTrainer,
+						'isRegistered:',
+						isRegistered
+					)}
+
+					{/* Единое сообщение */}
+					{registrationMessage ? (
 						<p
 							className={`registration-message mt text-gray ${
 								registrationMessage.includes('Ошибка') ? 'error' : 'success'
@@ -156,9 +192,17 @@ const WorkoutScreen = () => {
 						>
 							{registrationMessage}
 						</p>
-					)}
+					) : !isTrainer && isRegistered ? (
+						<p className='registration-message mt text-gray success'>
+							Вы уже записаны на эту тренировку!
+						</p>
+					) : isTrainer ? (
+						<p className='registration-message mt text-gray info'>
+							Вы тренер (кнопка регистрации недоступна)
+						</p>
+					) : null}
 
-					{/* Отображение списка зарегистрированных только для тренера */}
+					{/* Список зарегистрированных для тренера данной тренировки */}
 					{isTrainer && registrations && (
 						<div className='registrations-section mt'>
 							<h3>
