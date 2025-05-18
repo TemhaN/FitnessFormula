@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faClock } from '@fortawesome/free-solid-svg-icons';
+import {
+	faArrowLeft,
+	faClock,
+	faStar,
+} from '@fortawesome/free-solid-svg-icons';
 import {
 	getTrainerById,
 	getTrainerWorkouts,
 	getTrainerReviews,
 	postReview,
+	getTrainerStatistics,
 } from '../api/fitnessApi';
 
 const TrainerScreen = () => {
@@ -15,26 +20,34 @@ const TrainerScreen = () => {
 	const [trainerData, setTrainerData] = useState(null);
 	const [workouts, setWorkouts] = useState([]);
 	const [reviews, setReviews] = useState([]);
+	const [statistics, setStatistics] = useState(null);
 	const [newReview, setNewReview] = useState({ rating: 0, comment: '' });
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(true);
 
 	const userData = JSON.parse(localStorage.getItem('userData')) || null;
 
-	console.log('trainerId from params:', trainerId);
-
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
+				// Загружаем данные тренера
 				const trainer = await getTrainerById(trainerId);
 				setTrainerData(trainer);
 
+				// Загружаем тренировки
 				const trainerWorkouts = await getTrainerWorkouts(trainerId);
 				setWorkouts(trainerWorkouts);
 
+				// Загружаем отзывы
 				const trainerReviews = await getTrainerReviews(trainerId);
 				setReviews(trainerReviews);
+
+				// Загружаем статистику
+				const trainerStatistics = await getTrainerStatistics(trainerId);
+				setStatistics(trainerStatistics);
 			} catch (err) {
+				setError('Ошибка при загрузке данных тренера');
+				console.error(err);
 			} finally {
 				setLoading(false);
 			}
@@ -56,13 +69,14 @@ const TrainerScreen = () => {
 		}
 
 		if (!newReview.rating || !newReview.comment) {
+			setError('Оценка и комментарий обязательны');
 			return;
 		}
 
 		setError('');
 		try {
 			await postReview({
-				trainerId,
+				trainerId: parseInt(trainerId, 10),
 				userId: userData.user.userId,
 				rating: parseInt(newReview.rating, 10),
 				comment: newReview.comment,
@@ -71,10 +85,16 @@ const TrainerScreen = () => {
 			setNewReview({ rating: 0, comment: '' });
 			const updatedReviews = await getTrainerReviews(trainerId);
 			setReviews(updatedReviews);
-		} catch (err) {}
+
+			// Обновляем статистику после добавления отзыва
+			const updatedStatistics = await getTrainerStatistics(trainerId);
+			setStatistics(updatedStatistics);
+		} catch (err) {
+			setError('Ошибка при отправке отзыва');
+		}
 	};
 
-	if (loading) return <p>Загрузка...</p>;
+	if (loading) return <p className='loading'>Загрузка...</p>;
 
 	return (
 		<div className='trainer'>
@@ -110,10 +130,54 @@ const TrainerScreen = () => {
 
 			<div className='trainer-content'>
 				{error && <p className='error-message'>{error}</p>}
+
 				<h3>Описание</h3>
 				<p className='text-gray mt-2'>
 					{trainerData?.description || 'Описание не указано'}
 				</p>
+
+				<h3 className='mt'>Статистика</h3>
+				{statistics ? (
+					<div className='statistics-card'>
+						<div className='statistics-item'>
+							<span className='statistics-label'>Средний рейтинг:</span>
+							<span className='statistics-value'>
+								{statistics.statistics.averageRating.toFixed(2)} / 5{' '}
+								<FontAwesomeIcon
+									icon={faStar}
+									className='star filled'
+									style={{ color: '#ffd700' }}
+								/>
+							</span>
+						</div>
+						<div className='statistics-item'>
+							<span className='statistics-label'>Количество отзывов:</span>
+							<span className='statistics-value'>
+								{statistics.statistics.reviewCount}
+							</span>
+						</div>
+						<div className='statistics-item'>
+							<span className='statistics-label'>Проведено тренировок:</span>
+							<span className='statistics-value'>
+								{statistics.statistics.workoutCount}
+							</span>
+						</div>
+						<div className='statistics-item'>
+							<span className='statistics-label'>Уникальных участников:</span>
+							<span className='statistics-value'>
+								{statistics.statistics.uniqueParticipants}
+							</span>
+						</div>
+						<div className='statistics-item'>
+							<span className='statistics-label'>Всего регистраций:</span>
+							<span className='statistics-value'>
+								{statistics.statistics.totalRegistrations}
+							</span>
+						</div>
+					</div>
+				) : (
+					<p className='no-statistics text-gray'>Статистика недоступна</p>
+				)}
 
 				<h3 className='mt'>Навыки</h3>
 				<div className='skills-container'>

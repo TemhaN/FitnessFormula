@@ -14,6 +14,9 @@ import WorkoutsScreen from './components/WorkoutsScreen';
 import CommentsScreen from './components/CommentsScreen';
 import UserWorkoutsScreen from './components/UserWorkoutsScreen';
 import EditProfileScreen from './components/EditProfileScreen';
+import UserInterestsScreen from './components/UserInterestsScreen';
+import WorkoutsListScreen from './components/WorkoutsListScreen.js';
+import CalculatorScreen from './components/CalculatorScreen';
 
 function App() {
 	return (
@@ -29,11 +32,13 @@ function App() {
 				/>
 				<Route path='/trainer-skills' element={<TrainerSkills />} />
 				<Route path='/user' element={<UserScreen />} />
+				<Route path='/user/interests' element={<UserInterestsScreen />} />
 				<Route path='/trainer/:trainerId' element={<TrainerScreen />} />
 				<Route path='/workout/:workoutId' element={<WorkoutScreen />} />
 				<Route path='/publish-workout' element={<PublishWorkout />} />
 				<Route path='/trainer/workouts' element={<WorkoutsScreen />} />
-				<Route path='/comments' element={<CommentsScreen />} />
+				<Route path='/workouts-list' element={<WorkoutsListScreen />} />
+				<Route path='/calculator' element={<CalculatorScreen />} />
 				<Route path='/comments' element={<CommentsScreen />} />
 				<Route
 					path='/user/workoutregistration'

@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHouse, faUser } from '@fortawesome/free-solid-svg-icons';
-import { getUserById, getTrainerByUserId } from '../api/fitnessApi';
+import { faHouse, faUser, faChartPie } from '@fortawesome/free-solid-svg-icons';
+import {
+	getUserById,
+	getTrainerByUserId,
+	getUserStatistics,
+} from '../api/fitnessApi';
 
 const UserScreen = () => {
 	const navigate = useNavigate();
 	const [userData, setUserData] = useState(null);
 	const [trainerData, setTrainerData] = useState(null);
+	const [statistics, setStatistics] = useState(null);
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(true);
+	const navigateToCalculator = () => navigate('/calculator');
 
 	useEffect(() => {
 		const initializeData = async () => {
@@ -29,9 +35,10 @@ const UserScreen = () => {
 			setLoading(true);
 
 			try {
-				const [user, trainer] = await Promise.all([
+				const [user, trainer, stats] = await Promise.all([
 					getUserById(parsedUserData.user.userId),
 					getTrainerByUserId(parsedUserData.user.userId),
+					getUserStatistics(parsedUserData.user.userId),
 				]);
 
 				if (user) {
@@ -44,6 +51,8 @@ const UserScreen = () => {
 					setTrainerData(trainer);
 					localStorage.setItem('trainerData', JSON.stringify(trainer));
 				}
+
+				setStatistics(stats);
 			} catch (err) {
 				setError('Ошибка при загрузке данных');
 				console.error('Ошибка загрузки данных:', err);
@@ -61,7 +70,7 @@ const UserScreen = () => {
 		navigate('/login');
 	};
 
-	if (loading || !userData) return <p>Загрузка...</p>;
+	if (loading || !userData) return <p className='loading'>Загрузка...</p>;
 
 	return (
 		<div className='user'>
@@ -104,6 +113,35 @@ const UserScreen = () => {
 						)}
 					</div>
 				</div>
+
+				<div className='statistics-section'>
+					{statistics ? (
+						<div className='statistics-list'>
+							<div className='stat-card'>
+								<h4>Посещений тренировок</h4>
+								<p>{statistics.totalAttendances}</p>
+							</div>
+							<div className='stat-card'>
+								<h4>Уникальных тренировок</h4>
+								<p>{statistics.uniqueWorkouts}</p>
+							</div>
+							<div className='stat-card'>
+								<h4>Выбранных интересов</h4>
+								<p>{statistics.interestCount}</p>
+							</div>
+							<div className='stat-card'>
+								<h4>Последняя тренировка</h4>
+								<p>
+									{statistics.lastWorkout
+										? `${statistics.lastWorkout.title} (${statistics.lastWorkout.attendanceDate})`
+										: 'Не посещено'}
+								</p>
+							</div>
+						</div>
+					) : (
+						<p className='no-statistics'>Статистика недоступна</p>
+					)}
+				</div>
 			</div>
 
 			<div className='buttons'>
@@ -116,13 +154,20 @@ const UserScreen = () => {
 				<button onClick={() => navigate('/comments')} className='user-button'>
 					Комментарии
 				</button>
-				{/* Кнопка "Занятия, на которые вы подписаны" скрыта для тренеров */}
 				{!trainerData && (
 					<button
 						onClick={() => navigate('/user/workoutregistration')}
 						className='user-button'
 					>
 						Занятия, на которые вы подписаны
+					</button>
+				)}
+				{!trainerData && (
+					<button
+						onClick={() => navigate('/user/interests')}
+						className='user-button'
+					>
+						Изменить интересы
 					</button>
 				)}
 				{trainerData && (
@@ -149,6 +194,9 @@ const UserScreen = () => {
 			<div className='bottom-bar'>
 				<button onClick={() => navigate('/home')} className='bottom-bar-button'>
 					<FontAwesomeIcon icon={faHouse} size='lg' />
+				</button>
+				<button onClick={navigateToCalculator} className='bottom-bar-button'>
+					<FontAwesomeIcon icon={faChartPie} size='lg' />
 				</button>
 				<button onClick={() => navigate('/user')} className='bottom-bar-button'>
 					<FontAwesomeIcon icon={faUser} size='lg' />
