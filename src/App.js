@@ -17,6 +17,7 @@ import EditProfileScreen from './components/EditProfileScreen';
 import UserInterestsScreen from './components/UserInterestsScreen';
 import WorkoutsListScreen from './components/WorkoutsListScreen.js';
 import CalculatorScreen from './components/CalculatorScreen';
+import TrainerPendingCommentsScreen from './components/TrainerPendingCommentsScreen'; // Новый компонент
 
 function App() {
 	return (
@@ -34,6 +35,10 @@ function App() {
 				<Route path='/user' element={<UserScreen />} />
 				<Route path='/user/interests' element={<UserInterestsScreen />} />
 				<Route path='/trainer/:trainerId' element={<TrainerScreen />} />
+				<Route
+					path='/trainer/:trainerId/pending-comments'
+					element={<TrainerPendingCommentsScreen />}
+				/>
 				<Route path='/workout/:workoutId' element={<WorkoutScreen />} />
 				<Route path='/publish-workout' element={<PublishWorkout />} />
 				<Route path='/trainer/workouts' element={<WorkoutsScreen />} />

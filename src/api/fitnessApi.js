@@ -440,3 +440,171 @@ export const getUserStatistics = async userId => {
 		);
 	}
 };
+
+// Одобрение комментария к тренировке
+export const approveWorkoutComment = async (commentId, trainerId) => {
+	try {
+		const response = await axios.put(
+			`${API_URL}/WorkoutComments/approve/${commentId}/trainer/${trainerId}`
+		);
+		return response.data;
+	} catch (error) {
+		throw error.response?.data || 'Ошибка при одобрении комментария';
+	}
+};
+
+// Отклонение комментария к тренировке
+export const rejectWorkoutComment = async (commentId, trainerId) => {
+	try {
+		const response = await axios.delete(
+			`${API_URL}/WorkoutComments/reject/${commentId}/trainer/${trainerId}`
+		);
+		return response.data;
+	} catch (error) {
+		throw error.response?.data || 'Ошибка при отклонении комментария';
+	}
+};
+
+// Одобрение отзыва тренером
+export const approveReview = async (reviewId, trainerId) => {
+	try {
+		const response = await axios.put(
+			`${API_URL}/Reviews/approve/${reviewId}/trainer/${trainerId}`
+		);
+		return response.data;
+	} catch (error) {
+		throw error.response?.data || 'Ошибка при одобрении отзыва';
+	}
+};
+
+// Отклонение отзыва тренером
+export const rejectReview = async (reviewId, trainerId) => {
+	try {
+		const response = await axios.delete(
+			`${API_URL}/Reviews/reject/${reviewId}/trainer/${trainerId}`
+		);
+		return response.data;
+	} catch (error) {
+		throw error.response?.data || 'Ошибка при отклонении отзыва';
+	}
+};
+
+// Проверка посещения тренировки пользователем
+export const checkWorkoutAttendance = async (workoutId, userId) => {
+	try {
+		const response = await axios.get(
+			`${API_URL}/Workouts/check?workoutId=${workoutId}&userId=${userId}`
+		);
+		return response.data.attended;
+	} catch (error) {
+		console.error('Ошибка при проверке посещения:', error);
+		return false;
+	}
+};
+// Удаление комментария пользователем
+export const deleteWorkoutComment = async (commentId, userId) => {
+	try {
+		const response = await axios.delete(
+			`${API_URL}/WorkoutComments/${commentId}/user/${userId}`
+		);
+		return response.data;
+	} catch (error) {
+		throw error.response?.data || 'Ошибка при удалении комментария';
+	}
+};
+
+// Получение отзывов на модерации для пользователя
+export const getPendingTrainerReviews = async userId => {
+	try {
+		const response = await axios.get(
+			`${API_URL}/Reviews/pending/user/${userId}`
+		);
+		return response.data;
+	} catch (error) {
+		console.error('Ошибка при получении отзывов на модерации:', error);
+		throw error.response?.data || 'Ошибка при получении отзывов';
+	}
+};
+
+// Проверка возможности комментирования тренера
+export const checkCommentEligibility = async (trainerId, userId) => {
+	try {
+		const response = await axios.get(
+			`${API_URL}/Reviews/check-comment/${trainerId}/user/${userId}`
+		);
+		return response.data;
+	} catch (error) {
+		console.error('Ошибка при проверке возможности комментирования:', error);
+		throw (
+			error.response?.data || 'Ошибка при проверке возможности комментирования'
+		);
+	}
+};
+
+// Получение всех комментариев пользователя
+export const getUserWorkoutComments = async userId => {
+	try {
+		const response = await axios.get(
+			`${API_URL}/WorkoutComments/user/${userId}`
+		);
+		return response.data;
+	} catch (error) {
+		console.error('Ошибка при получении всех комментариев:', error);
+		throw error.response?.data || 'Ошибка при получении комментариев';
+	}
+};
+
+// Получение комментариев на модерации для тренера
+export const getPendingTrainerReviewsForTrainer = async trainerId => {
+	try {
+		const response = await axios.get(
+			`${API_URL}/Reviews/pending/trainer/${trainerId}`
+		);
+		return response.data;
+	} catch (error) {
+		console.error('Ошибка при получении отзывов на модерации:', error);
+		throw error.response?.data || 'Ошибка при получении отзывов';
+	}
+};
+
+// Получение комментариев на модерации для тренера
+export const getPendingWorkoutCommentsForTrainer = async trainerId => {
+	try {
+		const response = await axios.get(
+			`${API_URL}/WorkoutComments/pending/trainer/${trainerId}`
+		);
+		return response.data;
+	} catch (error) {
+		console.error('Ошибка при получении комментариев на модерации:', error);
+		throw error.response?.data || 'Ошибка при получении комментариев';
+	}
+};
+
+// Получение комментариев на модерации для пользователя
+export const getPendingWorkoutComments = async userId => {
+	try {
+		const response = await axios.get(
+			`${API_URL}/WorkoutComments/user/${userId}`
+		);
+		return response.data;
+	} catch (error) {
+		console.error('Ошибка при получении комментариев на модерации:', error);
+		throw error.response?.data || 'Ошибка при получении комментариев';
+	}
+};
+
+// Получение комментариев на модерации для тренировки
+export const getPendingCommentsForWorkout = async (workoutId, trainerId) => {
+	try {
+		const response = await axios.get(
+			`${API_URL}/WorkoutComments/pending/workout/${workoutId}/trainer/${trainerId}`
+		);
+		return response.data;
+	} catch (error) {
+		console.error(
+			'Ошибка при получении комментариев на модерации для тренировки:',
+			error
+		);
+		throw error.response?.data || 'Ошибка при получении комментариев';
+	}
+};

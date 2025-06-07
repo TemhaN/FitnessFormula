@@ -16,6 +16,12 @@ import {
 	removeUserFromWorkout,
 	getWorkoutComments,
 	postWorkoutComment,
+	approveWorkoutComment,
+	rejectWorkoutComment,
+	checkWorkoutAttendance,
+	deleteWorkoutComment,
+	getUserWorkoutComments,
+	getPendingCommentsForWorkout,
 } from '../api/fitnessApi';
 
 const WorkoutScreen = () => {
@@ -32,6 +38,9 @@ const WorkoutScreen = () => {
 	const [trainerData, setTrainerData] = useState(null);
 	const [comments, setComments] = useState([]);
 	const [newComment, setNewComment] = useState({ commentText: '' });
+	const [canComment, setCanComment] = useState(false);
+	const [pendingComments, setPendingComments] = useState([]);
+	const [trainerPendingComments, setTrainerPendingComments] = useState([]); // Добавлено состояние
 
 	const userData = JSON.parse(localStorage.getItem('userData')) || null;
 	const userId = userData?.user?.userId || null;
@@ -43,35 +52,74 @@ const WorkoutScreen = () => {
 				const workoutData = await getWorkoutById(workoutId);
 				setWorkout(workoutData);
 
-				// Загрузка комментариев
 				const workoutComments = await getWorkoutComments(workoutId);
-				setComments(workoutComments);
+				setComments(
+					workoutComments.map(comment => ({
+						...comment,
+						isApproved: comment.isApproved ?? true,
+					}))
+				);
 
-				if (userId) {
-					const trainer = await getTrainerByUserId(userId);
-					setTrainerData(trainer);
+				if (!userId) {
+					console.error('userId is null or undefined');
+					setError('Ошибка: пользователь не авторизован');
+					setLoading(false);
+					return;
+				}
 
-					if (trainer) {
-						setIsTrainer(true);
-						if (trainer.trainerId === workoutData.trainerId) {
-							const registrationsData = await getWorkoutRegistrationsForTrainer(
-								workoutId,
-								trainer.trainerId
-							);
-							setRegistrations(registrationsData);
-						}
-					} else {
-						const userRegistrations = await getUserWorkoutRegistrations(userId);
-						const parsedWorkoutId = parseInt(workoutId);
-						const registration = userRegistrations.find(
-							reg => reg.workout.workoutId === parsedWorkoutId
+				const trainer = await getTrainerByUserId(userId);
+				setTrainerData(trainer);
+
+				if (trainer) {
+					setIsTrainer(true);
+					if (trainer.trainerId === workoutData.trainerId) {
+						const registrationsData = await getWorkoutRegistrationsForTrainer(
+							workoutId,
+							trainer.trainerId
 						);
-						setIsRegistered(!!registration);
-						setRegistrationId(registration?.registrationId || null);
+						setRegistrations(registrationsData);
+
+						// Запрашиваем комментарии на модерации для тренировки
+						const trainerPendingCommentsData =
+							await getPendingCommentsForWorkout(workoutId, trainer.trainerId);
+						console.log(
+							'Trainer pending comments:',
+							trainerPendingCommentsData
+						);
+						setTrainerPendingComments(trainerPendingCommentsData);
+
+						// Запрашиваем собственные комментарии тренера
+						const pendingCommentsData = await getUserWorkoutComments(userId);
+						console.log('User pending comments:', pendingCommentsData);
+						setPendingComments(
+							pendingCommentsData.filter(
+								c => c.workoutId === parseInt(workoutId) && !c.isApproved
+							)
+						);
 					}
+				} else {
+					const userRegistrations = await getUserWorkoutRegistrations(userId);
+					const parsedWorkoutId = parseInt(workoutId);
+					const registration = userRegistrations.find(
+						reg => reg.workout.workoutId === parsedWorkoutId
+					);
+					setIsRegistered(!!registration);
+					setRegistrationId(registration?.registrationId || null);
+
+					const attended = await checkWorkoutAttendance(workoutId, userId);
+					setCanComment(attended);
+
+					// Запрашиваем комментарии пользователя
+					const pendingCommentsData = await getUserWorkoutComments(userId);
+					console.log('User pending comments:', pendingCommentsData);
+					setPendingComments(
+						pendingCommentsData.filter(
+							c => c.workoutId === parseInt(workoutId) && !c.isApproved
+						)
+					);
 				}
 			} catch (err) {
-				// Ошибки отображаются как уведомления, не на весь экран
+				setError(err.message || 'Ошибка при загрузке данных');
 			} finally {
 				setLoading(false);
 			}
@@ -218,8 +266,7 @@ const WorkoutScreen = () => {
 	};
 
 	const handleCommentChange = e => {
-		const { value } = e.target;
-		setNewComment({ commentText: value });
+		setNewComment({ commentText: e.target.value });
 	};
 
 	const handleCommentSubmit = async e => {
@@ -246,8 +293,113 @@ const WorkoutScreen = () => {
 			setNewComment({ commentText: '' });
 			const updatedComments = await getWorkoutComments(workoutId);
 			setComments(updatedComments);
+
+			// Обновляем комментарии пользователя
+			const updatedPendingComments = await getUserWorkoutComments(userId);
+			setPendingComments(
+				updatedPendingComments.filter(
+					c => c.workoutId === parseInt(workoutId) && !c.isApproved
+				)
+			);
+
+			// Обновляем комментарии на модерации для тренера
+			if (isTrainer && trainerData?.trainerId === workout?.trainerId) {
+				const updatedTrainerPendingComments =
+					await getPendingCommentsForWorkout(workoutId, trainerData.trainerId);
+				setTrainerPendingComments(updatedTrainerPendingComments);
+			}
+
+			setError('Комментарий отправлен на модерацию');
+			setTimeout(() => setError(''), 3000);
 		} catch (err) {
 			setError(err.message || 'Ошибка при отправке комментария');
+			setTimeout(() => setError(''), 3000);
+		}
+	};
+
+	const handleApproveComment = async commentId => {
+		try {
+			await approveWorkoutComment(commentId, trainerData.trainerId);
+			const updatedComments = await getWorkoutComments(workoutId);
+			setComments(updatedComments);
+
+			// Обновляем комментарии пользователя
+			const updatedPendingComments = await getUserWorkoutComments(userId);
+			setPendingComments(
+				updatedPendingComments.filter(
+					c => c.workoutId === parseInt(workoutId) && !c.isApproved
+				)
+			);
+
+			// Обновляем комментарии на модерации для тренера
+			const updatedTrainerPendingComments = await getPendingCommentsForWorkout(
+				workoutId,
+				trainerData.trainerId
+			);
+			setTrainerPendingComments(updatedTrainerPendingComments);
+
+			setError('Комментарий одобрен');
+			setTimeout(() => setError(''), 3000);
+		} catch (err) {
+			setError(err.message || 'Ошибка при одобрении комментария');
+			setTimeout(() => setError(''), 3000);
+		}
+	};
+
+	const handleRejectComment = async commentId => {
+		try {
+			await rejectWorkoutComment(commentId, trainerData.trainerId);
+			const updatedComments = await getWorkoutComments(workoutId);
+			setComments(updatedComments);
+
+			// Обновляем комментарии пользователя
+			const updatedPendingComments = await getUserWorkoutComments(userId);
+			setPendingComments(
+				updatedPendingComments.filter(
+					c => c.workoutId === parseInt(workoutId) && !c.isApproved
+				)
+			);
+
+			// Обновляем комментарии на модерации для тренера
+			const updatedTrainerPendingComments = await getPendingCommentsForWorkout(
+				workoutId,
+				trainerData.trainerId
+			);
+			setTrainerPendingComments(updatedTrainerPendingComments);
+
+			setError('Комментарий отклонён');
+			setTimeout(() => setError(''), 3000);
+		} catch (err) {
+			setError(err.message || 'Ошибка при отклонении комментария');
+			setTimeout(() => setError(''), 3000);
+		}
+	};
+
+	const handleDeleteComment = async commentId => {
+		try {
+			await deleteWorkoutComment(commentId, userId);
+			const updatedComments = await getWorkoutComments(workoutId);
+			setComments(updatedComments);
+
+			// Обновляем комментарии пользователя
+			const updatedPendingComments = await getUserWorkoutComments(userId);
+			setPendingComments(
+				updatedPendingComments.filter(
+					c => c.workoutId === parseInt(workoutId) && !c.isApproved
+				)
+			);
+
+			// Обновляем комментарии на модерации для тренера
+			if (isTrainer && trainerData?.trainerId === workout?.trainerId) {
+				const updatedTrainerPendingComments =
+					await getPendingCommentsForWorkout(workoutId, trainerData.trainerId);
+				setTrainerPendingComments(updatedTrainerPendingComments);
+			}
+
+			setError('Комментарий удалён');
+			setTimeout(() => setError(''), 3000);
+		} catch (err) {
+			setError(err.message || 'Ошибка при удалении комментария');
 			setTimeout(() => setError(''), 3000);
 		}
 	};
@@ -450,6 +602,89 @@ const WorkoutScreen = () => {
 						</button>
 					</div>
 				)}
+				{isTrainer && trainerData?.trainerId === workout?.trainerId && (
+					<div>
+						<h3 className='mt'>Комментарии на модерации (для тренера)</h3>
+						<div className='reviews-container'>
+							{trainerPendingComments.length > 0 ? (
+								trainerPendingComments.map(comment => (
+									<div key={comment.commentId} className='review-card'>
+										<div className='review-header'>
+											<img
+												src={
+													comment.user?.avatar
+														? `https://localhost:7149/${comment.user.avatar}`
+														: '/images/Profile_avatar_placeholder.png'
+												}
+												alt={comment.user?.fullName || 'Аватар пользователя'}
+												className='review-avatar'
+												onError={e =>
+													(e.target.src =
+														'/images/Profile_avatar_placeholder.png')
+												}
+											/>
+											<div>
+												<strong className='review-name'>
+													{comment.user?.fullName || 'Аноним'}
+												</strong>
+											</div>
+										</div>
+										<p className='review-text'>{comment.commentText}</p>
+										<p>
+											Дата: {new Date(comment.commentDate).toLocaleString()}
+										</p>
+										<p>Статус: На модерации</p>
+										<div className='action-buttons-pending'>
+											<button
+												className='action-button'
+												onClick={() => handleApproveComment(comment.commentId)}
+											>
+												Одобрить
+											</button>
+											<button
+												className='action-button remove-button'
+												onClick={() => handleRejectComment(comment.commentId)}
+											>
+												Отклонить
+											</button>
+										</div>
+									</div>
+								))
+							) : (
+								<p className='no-reviews'>Нет комментариев на модерации.</p>
+							)}
+						</div>
+					</div>
+				)}
+				<h3 className='mt'>Ваши комментарии на модерации</h3>
+				<div className='reviews-container'>
+					{pendingComments.length > 0 ? (
+						pendingComments.map(comment => (
+							<div key={comment.commentId} className='review-card'>
+								<div className='review-header'>
+									<div>
+										<strong className='review-name'>
+											{comment.user?.fullName ||
+												userData?.user?.fullName ||
+												'Вы'}
+										</strong>
+									</div>
+								</div>
+								<p className='review-text'>{comment.commentText}</p>
+								<p>Дата: {new Date(comment.commentDate).toLocaleString()}</p>
+								<p>Статус: На модерации</p>
+								<button
+									className='action-button remove-button'
+									onClick={() => handleDeleteComment(comment.commentId)}
+								>
+									Удалить
+								</button>
+							</div>
+						))
+					) : (
+						<p className='no-reviews'>Нет комментариев на модерации.</p>
+					)}
+				</div>
 				<h3 className='mt'>Комментарии</h3>
 				<div className='reviews-container'>
 					{comments.length > 0 ? (
@@ -475,6 +710,32 @@ const WorkoutScreen = () => {
 									</div>
 								</div>
 								<p className='review-text'>{comment.commentText}</p>
+								{isTrainer &&
+									trainerData?.trainerId === workout?.trainerId &&
+									!comment.isApproved && (
+										<div className='action-buttons-pending'>
+											<button
+												className='action-button'
+												onClick={() => handleApproveComment(comment.commentId)}
+											>
+												Одобрить
+											</button>
+											<button
+												className='action-button remove-button'
+												onClick={() => handleRejectComment(comment.commentId)}
+											>
+												Отклонить
+											</button>
+										</div>
+									)}
+								{userId === comment.userId && (
+									<button
+										className='action-button remove-button'
+										onClick={() => handleDeleteComment(comment.commentId)}
+									>
+										Удалить
+									</button>
+								)}
 							</div>
 						))
 					) : (
@@ -482,19 +743,25 @@ const WorkoutScreen = () => {
 					)}
 				</div>
 				<h3 className='mt'>Оставить комментарий</h3>
-				{userData?.user?.userId ? (
-					<form onSubmit={handleCommentSubmit} className='review-form'>
-						<textarea
-							name='commentText'
-							placeholder='Напишите ваш комментарий...'
-							value={newComment.commentText}
-							onChange={handleCommentChange}
-							className='review-textarea'
-						/>
-						<button type='submit' className='submit-button'>
-							Отправить
-						</button>
-					</form>
+				{userId ? (
+					canComment ? (
+						<form onSubmit={handleCommentSubmit} className='review-form'>
+							<textarea
+								name='commentText'
+								placeholder='Напишите ваш комментарий...'
+								value={newComment.commentText}
+								onChange={handleCommentChange}
+								className='review-textarea'
+							/>
+							<button type='submit' className='submit-button'>
+								Отправить
+							</button>
+						</form>
+					) : (
+						<p className='no-reviews'>
+							Вы не посещали эту тренировку, комментарий оставить нельзя.
+						</p>
+					)
 				) : (
 					<button className='submit-button' onClick={() => navigate('/login')}>
 						Войдите, чтобы оставить комментарий

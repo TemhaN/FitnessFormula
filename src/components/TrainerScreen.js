@@ -12,49 +12,95 @@ import {
 	getTrainerReviews,
 	postReview,
 	getTrainerStatistics,
+	approveReview,
+	rejectReview,
+	getTrainerByUserId,
+	getPendingTrainerReviewsForTrainer, // Изменён импорт
 } from '../api/fitnessApi';
+import axios from 'axios';
+
+const API_URL = 'https://localhost:7149/api';
 
 const TrainerScreen = () => {
 	const { trainerId } = useParams();
 	const navigate = useNavigate();
 	const [trainerData, setTrainerData] = useState(null);
 	const [workouts, setWorkouts] = useState([]);
-	const [reviews, setReviews] = useState([]);
+	const [reviews, setReviews] = useState([]); // Одобренные отзывы
+	const [pendingReviews, setPendingReviews] = useState([]); // Отзывы на модерации
 	const [statistics, setStatistics] = useState(null);
 	const [newReview, setNewReview] = useState({ rating: 0, comment: '' });
 	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(true);
+	const [isTrainer, setIsTrainer] = useState(false);
+	const [canLeaveReview, setCanLeaveReview] = useState(false);
 
 	const userData = JSON.parse(localStorage.getItem('userData')) || null;
+	const userId = userData?.user?.userId || null;
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
-				// Загружаем данные тренера
+				setLoading(true);
 				const trainer = await getTrainerById(trainerId);
 				setTrainerData(trainer);
 
-				// Загружаем тренировки
 				const trainerWorkouts = await getTrainerWorkouts(trainerId);
 				setWorkouts(trainerWorkouts);
 
-				// Загружаем отзывы
 				const trainerReviews = await getTrainerReviews(trainerId);
-				setReviews(trainerReviews);
+				// Нормализуем данные, добавляя isApproved: true, если отсутствует
+				const normalizedReviews = trainerReviews.map(review => ({
+					...review,
+					isApproved: review.isApproved ?? true,
+				}));
+				console.log(
+					'Approved reviews:',
+					JSON.stringify(normalizedReviews, null, 2)
+				);
+				setReviews(normalizedReviews);
 
-				// Загружаем статистику
 				const trainerStatistics = await getTrainerStatistics(trainerId);
 				setStatistics(trainerStatistics);
+
+				if (userId) {
+					const currentTrainer = await getTrainerByUserId(userId);
+					if (
+						currentTrainer &&
+						currentTrainer.trainerId === parseInt(trainerId)
+					) {
+						setIsTrainer(true);
+						const trainerPendingReviews =
+							await getPendingTrainerReviewsForTrainer(trainerId);
+						// Нормализуем данные для pendingReviews
+						const normalizedPendingReviews = trainerPendingReviews.map(
+							review => ({
+								...review,
+								isApproved: review.isApproved ?? false,
+							})
+						);
+						console.log(
+							'Pending reviews:',
+							JSON.stringify(normalizedPendingReviews, null, 2)
+						);
+						setPendingReviews(normalizedPendingReviews);
+					} else {
+						const checkCommentEligibility = await axios.get(
+							`${API_URL}/Reviews/check-comment/${trainerId}/user/${userId}`
+						);
+						setCanLeaveReview(checkCommentEligibility.data.canComment);
+					}
+				}
 			} catch (err) {
 				setError('Ошибка при загрузке данных тренера');
-				console.error(err);
+				console.error('Fetch error:', err);
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		fetchData();
-	}, [trainerId]);
+	}, [trainerId, userId]);
 
 	const handleReviewChange = e => {
 		const { name, value } = e.target;
@@ -63,7 +109,7 @@ const TrainerScreen = () => {
 
 	const handleReviewSubmit = async e => {
 		e.preventDefault();
-		if (!userData || !userData.user?.userId) {
+		if (!userId) {
 			navigate('/login');
 			return;
 		}
@@ -77,7 +123,7 @@ const TrainerScreen = () => {
 		try {
 			await postReview({
 				trainerId: parseInt(trainerId, 10),
-				userId: userData.user.userId,
+				userId,
 				rating: parseInt(newReview.rating, 10),
 				comment: newReview.comment,
 			});
@@ -86,13 +132,77 @@ const TrainerScreen = () => {
 			const updatedReviews = await getTrainerReviews(trainerId);
 			setReviews(updatedReviews);
 
-			// Обновляем статистику после добавления отзыва
+			if (!isTrainer) {
+				const checkCommentEligibility = await axios.get(
+					`${API_URL}/Reviews/check-comment/${trainerId}/user/${userId}`
+				);
+				setCanLeaveReview(checkCommentEligibility.data.canComment);
+			}
+
 			const updatedStatistics = await getTrainerStatistics(trainerId);
 			setStatistics(updatedStatistics);
+
+			setError('Отзыв отправлен на модерацию');
+			setTimeout(() => setError(''), 3000);
 		} catch (err) {
-			setError('Ошибка при отправке отзыва');
+			setError(err.message || 'Ошибка при отправке отзыва');
+			setTimeout(() => setError(''), 3000);
 		}
 	};
+
+	const handleApproveReview = async reviewId => {
+		try {
+			await approveReview(reviewId, trainerId);
+			const updatedReviews = await getTrainerReviews(trainerId);
+			setReviews(updatedReviews);
+			const updatedPendingReviews = await getPendingTrainerReviewsForTrainer(
+				trainerId
+			);
+			setPendingReviews(updatedPendingReviews);
+			setError('Отзыв одобрен');
+			setTimeout(() => setError(''), 3000);
+		} catch (err) {
+			setError(err.message || 'Ошибка при одобрении отзыва');
+			setTimeout(() => setError(''), 3000);
+		}
+	};
+
+	const handleRejectReview = async reviewId => {
+		try {
+			await rejectReview(reviewId, trainerId);
+			const updatedReviews = await getTrainerReviews(trainerId);
+			setReviews(updatedReviews);
+			const updatedPendingReviews = await getPendingTrainerReviewsForTrainer(
+				trainerId
+			);
+			setPendingReviews(updatedPendingReviews);
+			setError('Отзыв отклонён');
+			setTimeout(() => setError(''), 3000);
+		} catch (err) {
+			setError(err.message || 'Ошибка при отклонении отзыва');
+			setTimeout(() => setError(''), 3000);
+		}
+	};
+
+	const handleDeleteReview = async reviewId => {
+		try {
+			await rejectReview(reviewId, userId);
+			const updatedPendingReviews = await getPendingTrainerReviewsForTrainer(
+				trainerId
+			);
+			setPendingReviews(updatedPendingReviews);
+			setError('Отзыв удалён');
+			setTimeout(() => setError(''), 3000);
+		} catch (err) {
+			setError(err.message || 'Ошибка при удалении отзыва');
+			setTimeout(() => setError(''), 3000);
+		}
+	};
+
+	// Объединяем одобренные и неутверждённые отзывы
+	const allReviews = [...reviews, ...pendingReviews].sort(
+		(a, b) => new Date(b.reviewDate) - new Date(a.reviewDate)
+	);
 
 	if (loading) return <p className='loading'>Загрузка...</p>;
 
@@ -130,55 +240,38 @@ const TrainerScreen = () => {
 
 			<div className='trainer-content'>
 				{error && <p className='error-message'>{error}</p>}
-
 				<h3>Описание</h3>
 				<p className='text-gray mt-2'>
 					{trainerData?.description || 'Описание не указано'}
 				</p>
-
 				<h3 className='mt'>Статистика</h3>
-				{statistics ? (
+				{statistics && statistics.averageRating !== undefined ? (
 					<div className='statistics-card'>
 						<div className='statistics-item'>
 							<span className='statistics-label'>Средний рейтинг:</span>
 							<span className='statistics-value'>
-								{statistics.statistics.averageRating.toFixed(2)} / 5{' '}
+								{statistics.averageRating.toFixed(2)} / 5{' '}
 								<FontAwesomeIcon
 									icon={faStar}
 									className='star filled'
-									style={{ color: '#ffd700' }}
+									style={{ color: '#ddd' }}
 								/>
 							</span>
 						</div>
 						<div className='statistics-item'>
 							<span className='statistics-label'>Количество отзывов:</span>
-							<span className='statistics-value'>
-								{statistics.statistics.reviewCount}
-							</span>
+							<span className='statistics-value'>{statistics.reviewCount}</span>
 						</div>
 						<div className='statistics-item'>
 							<span className='statistics-label'>Проведено тренировок:</span>
 							<span className='statistics-value'>
-								{statistics.statistics.workoutCount}
-							</span>
-						</div>
-						<div className='statistics-item'>
-							<span className='statistics-label'>Уникальных участников:</span>
-							<span className='statistics-value'>
-								{statistics.statistics.uniqueParticipants}
-							</span>
-						</div>
-						<div className='statistics-item'>
-							<span className='statistics-label'>Всего регистраций:</span>
-							<span className='statistics-value'>
-								{statistics.statistics.totalRegistrations}
+								{statistics.workoutCount}
 							</span>
 						</div>
 					</div>
 				) : (
-					<p className='no-statistics text-gray'>Статистика недоступна</p>
+					<p className='no-statistics'>Статистика недоступна</p>
 				)}
-
 				<h3 className='mt'>Навыки</h3>
 				<div className='skills-container'>
 					{trainerData?.skills?.length > 0 ? (
@@ -191,7 +284,6 @@ const TrainerScreen = () => {
 						<p className='no-skills'>Нет навыков</p>
 					)}
 				</div>
-
 				<h3 className='mt'>Занятия</h3>
 				{workouts.length > 0 ? (
 					<div className='horizontal-scroll'>
@@ -236,6 +328,43 @@ const TrainerScreen = () => {
 				) : (
 					<p className='no-reviews'>Тренировки не найдены.</p>
 				)}
+				<h3 className='mt'>Ваши отзывы на модерации</h3>
+				<div className='reviews-container'>
+					{pendingReviews.length > 0 ? (
+						pendingReviews.map(review => (
+							<div key={review.reviewId} className='review-card'>
+								<div className='review-header'>
+									<div>
+										<strong className='review-name'>
+											{userData?.user?.fullName || 'Вы'}
+										</strong>
+										<div className='review-rating'>
+											{[...Array(5)].map((_, i) => (
+												<span
+													key={i}
+													className={i < review.rating ? 'star filled' : 'star'}
+												>
+													★
+												</span>
+											))}
+										</div>
+									</div>
+								</div>
+								<p className='review-text'>{review.comment}</p>
+								<p>Дата: {new Date(review.reviewDate).toLocaleString()}</p>
+								<p>Статус: На модерации</p>
+								<button
+									className='action-button remove-button'
+									onClick={() => handleDeleteReview(review.reviewId)}
+								>
+									Удалить
+								</button>
+							</div>
+						))
+					) : (
+						<p className='no-reviews'>Нет отзывов на модерации.</p>
+					)}
+				</div>
 
 				<h3 className='mt'>Отзывы</h3>
 				<div className='reviews-container'>
@@ -275,65 +404,134 @@ const TrainerScreen = () => {
 							</div>
 						))
 					) : (
-						<p className='no-reviews'>Отзывов пока нет.</p>
+						<p className='no-reviews'>Одобренных отзывов пока нет.</p>
 					)}
 				</div>
 
-				<h3 className='mt'>Оставить отзыв</h3>
-				{userData?.user?.userId ? (
-					<form onSubmit={handleReviewSubmit} className='review-form'>
-						<div className='rating-input'>
-							<div className='rating-controls'>
-								<label>Оценка:</label>
-								<button
-									type='button'
-									className='rating-btn'
-									onClick={() =>
-										setNewReview(prev => ({
-											...prev,
-											rating: Math.max(1, prev.rating - 1),
-										}))
-									}
-								>
-									-
-								</button>
-								<input
-									type='number'
-									name='rating'
-									min='1'
-									max='5'
-									value={newReview.rating}
-									onChange={handleReviewChange}
-									className='rating-field'
-								/>
-								<button
-									type='button'
-									className='rating-btn'
-									onClick={() =>
-										setNewReview(prev => ({
-											...prev,
-											rating: Math.min(5, prev.rating + 1),
-										}))
-									}
-								>
-									+
-								</button>
-							</div>
+				{isTrainer && trainerData?.trainerId === parseInt(trainerId) && (
+					<>
+						<h3 className='mt'>Отзывы на модерации</h3>
+						<div className='reviews-container'>
+							{pendingReviews.length > 0 ? (
+								pendingReviews.map(review => (
+									<div key={review.reviewId} className='review-card'>
+										<div className='review-header'>
+											<img
+												src={
+													review.user?.avatar
+														? `https://localhost:7149/${review.user.avatar}`
+														: '/images/Profile_avatar_placeholder.png'
+												}
+												alt={review.user?.fullName || 'Аватар пользователя'}
+												className='review-avatar'
+												onError={e =>
+													(e.target.src =
+														'/images/Profile_avatar_placeholder.png')
+												}
+											/>
+											<div>
+												<strong className='review-name'>
+													{review.user?.fullName || 'Аноним'}
+												</strong>
+												<div className='review-rating'>
+													{[...Array(5)].map((_, i) => (
+														<span
+															key={i}
+															className={
+																i < review.rating ? 'star filled' : 'star'
+															}
+														>
+															★
+														</span>
+													))}
+												</div>
+											</div>
+										</div>
+										<p className='review-text'>{review.comment}</p>
+										<div className='action-buttons-pending'>
+											<button
+												className='action-button'
+												onClick={() => handleApproveReview(review.reviewId)}
+											>
+												Одобрить
+											</button>
+											<button
+												className='action-button remove-button'
+												onClick={() => handleRejectReview(review.reviewId)}
+											>
+												Отклонить
+											</button>
+										</div>
+									</div>
+								))
+							) : (
+								<p className='no-reviews'>Нет отзывов на модерации.</p>
+							)}
 						</div>
-						<textarea
-							name='comment'
-							placeholder='Напишите ваш отзыв...'
-							value={newReview.comment}
-							onChange={handleReviewChange}
-							className='review-textarea'
-						/>
-						<button type='submit' className='submit-button'>
-							Отправить
-						</button>
-					</form>
+					</>
+				)}
+
+				<h3 className='mt'>Оставить отзыв</h3>
+				{userId ? (
+					canLeaveReview ? (
+						<form onSubmit={handleReviewSubmit} className='review-form'>
+							<div className='rating-input'>
+								<div className='rating-controls'>
+									<label>Оценка:</label>
+									<button
+										type='button'
+										className='rating-btn'
+										onClick={() =>
+											setNewReview(prev => ({
+												...prev,
+												rating: Math.max(1, prev.rating - 1),
+											}))
+										}
+									>
+										-
+									</button>
+									<input
+										type='number'
+										name='rating'
+										min='1'
+										max='5'
+										value={newReview.rating}
+										onChange={handleReviewChange}
+										className='rating-field'
+									/>
+									<button
+										type='button'
+										className='rating-btn'
+										onClick={() =>
+											setNewReview(prev => ({
+												...prev,
+												rating: Math.min(5, prev.rating + 1),
+											}))
+										}
+									>
+										+
+									</button>
+								</div>
+							</div>
+							<textarea
+								name='comment'
+								placeholder='Напишите ваш отзыв...'
+								value={newReview.comment}
+								onChange={handleReviewChange}
+								className='review-textarea'
+							/>
+							<button type='submit' className='submit-button'>
+								Отправить
+							</button>
+						</form>
+					) : (
+						<p className='no-reviews'>
+							Вы не посещали тренировки этого тренера или уже оставили отзыв.
+						</p>
+					)
 				) : (
 					<button className='submit-button' onClick={() => navigate('/login')}>
-						Войдите, чтобы оставить комментарий
+						Войдите, чтобы оставить отзыв
 					</button>
 				)}
 			</div>

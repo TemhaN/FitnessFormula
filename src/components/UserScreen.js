@@ -184,6 +184,14 @@ const UserScreen = () => {
 						>
 							Ваши занятия
 						</button>
+						<button
+							onClick={() =>
+								navigate(`/trainer/${trainerData.trainerId}/pending-comments`)
+							}
+							className='user-button'
+						>
+							Комментарии на модерации
+						</button>
 					</>
 				)}
 				<button onClick={handleLogout} className='user-button'>
